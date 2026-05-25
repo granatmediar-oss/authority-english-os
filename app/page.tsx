@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mic, Square, Play, RefreshCw, Target, Brain, MessageSquare, Trophy, BookOpen, ShieldCheck, BarChart3, Volume2, Languages } from "lucide-react";
+import { Mic, Square, Play, RefreshCw, Target, Brain, MessageSquare, Trophy, BookOpen, ShieldCheck, BarChart3, Volume2, Languages, Loader2 } from "lucide-react";
 
 declare global {
   interface Window {
@@ -293,6 +293,53 @@ function getNextAction(score: number, lang: HelperLanguage) {
   return "Переходи к следующему сценарию или преврати этот ответ в объяснение на 60 секунд.";
 }
 
+function getBeginnerReading(id: number) {
+  const readings: Record<number, string> = {
+    1: "Ай ниид ту андэрстэнд зэ продакт фёрст.",
+    2: "Ай ду нот рэкомэнд скипинг архитектчэр.",
+    3: "Фёрст, уи ниид ту андэрстэнд зэ дэйта энд зэ продакт лоджик.",
+    4: "Май роул из дифэрэнт. Ай хэлп ридьюс зэ кост ов ронг дисижнз.",
+    5: "Ай эм э Продакт энд Дисижн Архитект.",
+    6: "Ай ду нот рэкомэнд стартинг уиз скринз.",
+    7: "Нот ол фичерз шуд би ин зэ фёрст вёржн.",
+    8: "Зэ некст степ из э пэйд архитектчэр сэшн.",
+    9: "Бикоз зэ проблем из офэн нот зэ тул. Ит из зэ дисижн стракчэр."
+  };
+  return readings[id] || "";
+}
+
+function getTargetReading(id: number) {
+  const readings: Record<number, string> = {
+    1: "Бифор ай эстимэйт зэ билд, ай ниид ту андэрстэнд зэ продакт лоджик, юзер роулз, дэйта стракчэр, энд риск пойнтс. Азэруайз, зи эстимэйт вуд лук присайс бат би стрэтэджикли анрилайэбл.",
+    2: "Ай ду нот рэкомэнд скипинг архитектчэр. Зэ скринз мэй лук симпл, бат зэ систем бихайнд зэм кэн криэйт хидэн бизнес дэт иф уи дифайн ит ту лэйт.",
+    3: "Эй-ай шуд нот би эдэд бифор зи инпут дэйта, аутпут формат, юзер ауткам, энд риск баундэриз ар клир. Азэруайз, ит бикомз эн экспенсив лэйэр он топ ов эн анклир систем.",
+    4: "Зэт мэй би посибл фор экзекьюшн. Май роул из дифэрэнт. Ай хэлп ю ридьюс зэ кост ов ронг дисижнз бифор дивелопмэнт тёрнз зэм инту риворк.",
+    5: "Ай эм э Продакт энд Дисижн Архитект. Ай хэлп фаундэрз дизайн продакт архитектчэр бифор зэй спенд мани он дивелопмэнт.",
+    6: "Ай ду нот рэкомэнд стартинг уиз скринз. Фёрст, уи ниид ту дифайн зэ дэйта стракчэр, юзер роулз, энд продакт лоджик бихайнд зэ скринз.",
+    7: "Нот ол фичерз шуд би ин зэ фёрст вёржн. Зэ эм-ви-пи шуд прув зэ кор продакт лоджик бифор уи экспэнд зэ систем.",
+    8: "Зэ бэст некст степ из э пэйд архитектчэр сэшн. Афтэр зэт, ай кэн дифайн зэ продакт баундэриз, рискс, энд имплементэйшн скоуп.",
+    9: "Ноу-код мэйкс дивелопмэнт фастэр, бат ит даз нот римув зэ кост ов уик дисижнз. Мэни продактс фэйл нот бикоз ов зэ тул, бат бикоз зэ дэйта стракчэр, юзер роулз, энд продакт баундэриз вёр анклир фром зэ бигининг."
+  };
+  return readings[id] || "";
+}
+
+function getPhraseReading(phrase: string) {
+  const readings: Record<string, string> = {
+    "I am a Product and Decision Architect.": "Ай эм э Продакт энд Дисижн Архитект.",
+    "I help founders design product architecture before they spend money on development.": "Ай хэлп фаундэрз дизайн продакт архитектчэр бифор зэй спенд мани он дивелопмэнт.",
+    "This is not a build question yet. This is a product architecture question.": "Зис из нот э билд квесчэн йет. Зис из э продакт архитектчэр квесчэн.",
+    "I do not recommend starting with implementation.": "Ай ду нот рэкомэнд стартинг уиз имплементэйшн.",
+    "First, I need to understand the product logic, user roles, and data structure.": "Фёрст, ай ниид ту андэрстэнд зэ продакт лоджик, юзер роулз, энд дэйта стракчэр.",
+    "Without architecture, any estimate would be unreliable.": "Уизаут архитектчэр, эни эстимэйт вуд би анрилайэбл.",
+    "The best next step is a paid architecture session.": "Зэ бэст некст степ из э пэйд архитектчэр сэшн.",
+    "A cheap build can become expensive rework.": "Э чип билд кэн биком экспенсив риворк.",
+    "AI does not fix unclear product logic. It amplifies it.": "Эй-ай даз нот фикс анклир продакт лоджик. Ит эмплифайз ит.",
+    "Architecture before development. Decisions before scale.": "Архитектчэр бифор дивелопмэнт. Дисижнз бифор скэйл.",
+    "What are you building? Who is it for? What already exists? What is the core workflow? What is the biggest risk?": "Уот ар ю билдинг? Ху из ит фор? Уот олрэди игзистс? Уот из зэ кор воркфлоу? Уот из зэ бигэст риск?"
+  };
+  return readings[phrase] || "";
+}
+
 
 export default function AuthorityEnglishOS() {
   const [activeScenario, setActiveScenario] = useState<Scenario>(scenarios[0]);
@@ -306,8 +353,13 @@ export default function AuthorityEnglishOS() {
   const [manualMode, setManualMode] = useState(false);
   const [helperLanguage, setHelperLanguage] = useState<HelperLanguage>("ru");
   const [activeTab, setActiveTab] = useState("start");
+  const [aiVoiceStatus, setAiVoiceStatus] = useState("");
+  const [aiVoiceLoading, setAiVoiceLoading] = useState(false);
+  const [aiVoiceMode, setAiVoiceMode] = useState<"normal" | "slow">("slow");
+  const [aiVoiceName, setAiVoiceName] = useState("marin");
 
   const recognitionRef = React.useRef<any>(null);
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const currentScore = useMemo(() => scoreAttempt(attempt, activeScenario.targetAnswer), [attempt, activeScenario]);
 
   const filteredPhrases = phraseBank.filter((item) =>
@@ -362,13 +414,69 @@ export default function AuthorityEnglishOS() {
     setRecordingStatus("Recording stopped. Analyze your answer or record again.");
   };
 
-  const speakStrongerVersion = () => {
+  const speakBrowserVoice = () => {
     if (!window.speechSynthesis) return;
     const utterance = new SpeechSynthesisUtterance(activeScenario.targetAnswer);
     utterance.lang = "en-US";
-    utterance.rate = 0.82;
+    utterance.rate = 0.78;
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);
+  };
+
+  const playAiVoice = async () => {
+    try {
+      setAiVoiceLoading(true);
+      setAiVoiceStatus(helperLanguage === "ru" ? "Генерирую естественный AI-голос..." : "Generating natural AI voice...");
+
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+
+      const response = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: activeScenario.targetAnswer,
+          voice: aiVoiceName,
+          mode: aiVoiceMode
+        })
+      });
+
+      if (!response.ok) {
+        let message = "AI voice is not configured yet.";
+        try {
+          const data = await response.json();
+          message = data?.error || message;
+        } catch {}
+        throw new Error(message);
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.onended = () => URL.revokeObjectURL(url);
+      await audio.play();
+      setAiVoiceStatus(helperLanguage === "ru" ? "AI-голос включён. Повторяй за ним вслух." : "AI voice is playing. Shadow it aloud.");
+    } catch (error) {
+      setAiVoiceStatus(
+        helperLanguage === "ru"
+          ? `AI-голос пока не подключён: ${error instanceof Error ? error.message : "ошибка"}. Используй Browser Listen временно.`
+          : `AI voice is not connected yet: ${error instanceof Error ? error.message : "error"}. Use Browser Listen for now.`
+      );
+    } finally {
+      setAiVoiceLoading(false);
+    }
+  };
+
+  const stopAiVoice = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    if (typeof window !== "undefined") window.speechSynthesis?.cancel();
+    setAiVoiceStatus(helperLanguage === "ru" ? "Озвучка остановлена." : "Voice stopped.");
   };
 
   const nextScenario = () => {
@@ -415,7 +523,7 @@ export default function AuthorityEnglishOS() {
           <TabsContent value="start">
             <div className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
               <Card className="border-neutral-800 bg-neutral-900 text-neutral-50"><CardContent className="p-6"><Badge className="mb-4 bg-orange-500 text-white">30-Day Starter Mode</Badge><h2 className="text-3xl font-semibold">Start from zero without lowering your position</h2><p className="mt-4 text-neutral-300">Your first goal is not fluent English. Your first goal is to repeat strong founder-call phrases until they become automatic.</p><div className="mt-6 rounded-2xl border border-orange-500/30 bg-orange-500/10 p-5"><div className="mb-2 text-sm font-medium text-orange-300">Today’s rule</div><p className="text-xl font-semibold text-neutral-100">Say less, but say it from authority.</p><p className="mt-3 text-neutral-300">Do not try to explain everything. Train one clear sentence, then expand it.</p></div></CardContent></Card>
-              <Card className="border-neutral-800 bg-neutral-900 text-neutral-50"><CardContent className="p-6"><h2 className="mb-5 text-2xl font-semibold">First 7 days</h2><div className="space-y-4">{starterPlan.map((item) => (<div key={item.day} className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5"><div className="mb-2 flex items-center justify-between gap-3"><Badge variant="outline" className="border-orange-500/40 text-orange-300">{item.day}</Badge><span className="text-sm text-neutral-500">{item.focus}</span></div><p className="mb-3 text-neutral-300">{item.task}</p>{helperLanguage === "ru" && (<p className="mb-3 text-sm text-neutral-500">{item.taskRu}</p>)}<p className="rounded-xl bg-neutral-900 p-3 text-neutral-100">“{item.phrase}”</p>{helperLanguage === "ru" && (<p className="mt-2 rounded-xl bg-neutral-950 p-3 text-sm text-neutral-400">{item.phraseRu}</p>)}</div>))}</div></CardContent></Card>
+              <Card className="border-neutral-800 bg-neutral-900 text-neutral-50"><CardContent className="p-6"><h2 className="mb-5 text-2xl font-semibold">First 7 days</h2><div className="space-y-4">{starterPlan.map((item) => (<div key={item.day} className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5"><div className="mb-2 flex items-center justify-between gap-3"><Badge variant="outline" className="border-orange-500/40 text-orange-300">{item.day}</Badge><span className="text-sm text-neutral-500">{item.focus}</span></div><p className="mb-3 text-neutral-300">{item.task}</p>{helperLanguage === "ru" && (<p className="mb-3 text-sm text-neutral-500">{item.taskRu}</p>)}<p className="rounded-xl bg-neutral-900 p-3 text-neutral-100">“{item.phrase}”</p>{helperLanguage === "ru" && (<div className="mt-2 space-y-2"><p className="rounded-xl bg-neutral-950 p-3 text-sm text-neutral-400">{item.phraseRu}</p>{getPhraseReading(item.phrase) && (<details className="rounded-xl border border-neutral-800 bg-neutral-900 p-3 text-sm text-neutral-300"><summary className="cursor-pointer font-medium text-orange-300">Сомневаюсь, как прочитать</summary><div className="mt-2">{getPhraseReading(item.phrase)}</div></details>)}</div>)}</div>))}</div></CardContent></Card>
             </div>
           </TabsContent>
 
@@ -423,17 +531,17 @@ export default function AuthorityEnglishOS() {
             <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
               <Card className="border-neutral-800 bg-neutral-900 text-neutral-50"><CardContent className="p-6"><div className="mb-4 flex items-center justify-between"><div><Badge variant="secondary" className="mb-3 bg-neutral-800 text-neutral-200">{activeScenario.type}</Badge><h2 className="text-2xl font-semibold">{activeScenario.title}</h2>{helperLanguage === "ru" && (<p className="mt-1 text-sm text-neutral-500">{activeScenario.titleRu}</p>)}</div><Badge className="bg-orange-500">{activeScenario.level}</Badge></div><div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5"><div className="mb-3 flex items-center gap-2 text-sm text-neutral-400"><MessageSquare className="h-4 w-4" /> Founder says</div><p className="text-xl leading-relaxed text-neutral-100">“{activeScenario.founderLine}”</p>{helperLanguage === "ru" && (<p className="mt-3 rounded-xl bg-neutral-900 p-3 text-sm text-neutral-400">{activeScenario.founderLineRu}</p>)}</div><div className="mt-5 rounded-2xl border border-orange-500/30 bg-orange-500/10 p-5"><div className="mb-3 flex items-center gap-2 text-sm text-orange-300"><ShieldCheck className="h-4 w-4" /> Authority principle</div><p className="text-neutral-100">{activeScenario.authorityPrinciple}</p>{helperLanguage === "ru" && (<p className="mt-3 text-sm text-orange-100/80">{activeScenario.authorityPrincipleRu}</p>)}</div><div className="mt-5"><div className="mb-2 text-sm font-medium text-neutral-400">Key vocabulary</div><div className="flex flex-wrap gap-2">{activeScenario.vocabulary.map((word, index) => (<Badge key={word} variant="outline" className="border-neutral-700 text-neutral-200">{word}{helperLanguage === "ru" ? ` — ${activeScenario.vocabularyRu[index]}` : ""}</Badge>))}</div></div></CardContent></Card>
 
-              <Card className="border-neutral-800 bg-neutral-900 text-neutral-50"><CardContent className="p-6"><div className="mb-4 flex items-center gap-3"><Mic className="h-5 w-5 text-orange-400" /><h2 className="text-2xl font-semibold">Your speaking attempt</h2></div><p className="mb-4 text-neutral-400">First say the beginner answer aloud. Then write or record your stronger version.</p><div className="mb-4 rounded-2xl border border-neutral-800 bg-neutral-950 p-4"><div className="mb-2 text-sm font-medium text-orange-300">Beginner answer</div><p className="text-neutral-100">{activeScenario.beginnerAnswer}</p>{helperLanguage === "ru" && (<p className="mt-2 text-sm text-neutral-500">{activeScenario.beginnerAnswerRu}</p>)}</div><Textarea value={attempt} onChange={(e) => setAttempt(e.target.value)} placeholder="Your transcript will appear here. You can also type manually." className="min-h-40 border-neutral-700 bg-neutral-950 text-neutral-50 placeholder:text-neutral-600" />
+              <Card className="border-neutral-800 bg-neutral-900 text-neutral-50"><CardContent className="p-6"><div className="mb-4 flex items-center gap-3"><Mic className="h-5 w-5 text-orange-400" /><h2 className="text-2xl font-semibold">Your speaking attempt</h2></div><p className="mb-4 text-neutral-400">First say the beginner answer aloud. Then write or record your stronger version.</p><div className="mb-4 rounded-2xl border border-neutral-800 bg-neutral-950 p-4"><div className="mb-2 text-sm font-medium text-orange-300">Beginner answer</div><p className="text-neutral-100">{activeScenario.beginnerAnswer}</p>{helperLanguage === "ru" && (<div className="mt-3 space-y-2"><p className="text-sm text-neutral-500">{activeScenario.beginnerAnswerRu}</p><details className="rounded-xl border border-neutral-800 bg-neutral-900 p-3 text-sm text-neutral-300"><summary className="cursor-pointer font-medium text-orange-300">Сомневаюсь, как прочитать</summary><div className="mt-2">{getBeginnerReading(activeScenario.id)}</div></details></div>)}</div><Textarea value={attempt} onChange={(e) => setAttempt(e.target.value)} placeholder="Your transcript will appear here. You can also type manually." className="min-h-40 border-neutral-700 bg-neutral-950 text-neutral-50 placeholder:text-neutral-600" />
                 <div className="mt-4 rounded-2xl border border-neutral-800 bg-neutral-950 p-4"><div className="mb-2 text-sm font-medium text-neutral-300">Voice Practice Mode</div><p className="mb-4 text-sm text-neutral-500">{recordingStatus}</p>{helperLanguage === "ru" && (<p className="mb-4 rounded-xl bg-neutral-900 p-3 text-sm text-neutral-300">Скажи ответ вслух на английском. Если распознавание не сработало, напиши в поле то, что сказала. Главное — тренировать речь, а не печатание.</p>)}{!voiceSupported && (<div className="mb-4 rounded-xl border border-orange-500/30 bg-orange-500/10 p-4 text-sm text-orange-200">Voice recognition may not work inside preview environments. For full use, deploy this as a real HTTPS web app and open it in Google Chrome. Until then, use Manual Mode: say the answer aloud, then type what you said.</div>)}{manualMode && (<div className="mb-4 rounded-xl border border-neutral-700 bg-neutral-900 p-4 text-sm text-neutral-300">Manual Mode: speak aloud first, then type your answer into the transcript box. This still trains the same negotiation pattern.</div>)}<div className="flex flex-wrap gap-3"><Button onClick={startRecording} disabled={isRecording}><Mic className="mr-2 h-4 w-4" /> Record</Button><Button onClick={stopRecording} disabled={!isRecording} variant="outline"><Square className="mr-2 h-4 w-4" /> Stop</Button><Button onClick={() => setAttempt("")} variant="outline">Clear transcript</Button></div></div>
                 <div className="mt-4 flex flex-wrap gap-3"><Button onClick={saveAttempt}><Brain className="mr-2 h-4 w-4" /> Analyze answer</Button><Button onClick={nextScenario} variant="outline"><RefreshCw className="mr-2 h-4 w-4" /> Next scenario</Button></div>
-                {showFeedback && (<motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-6 space-y-4"><div className="grid gap-3 md:grid-cols-4"><Score label="Total" value={currentScore.total} /><Score label="Vocabulary" value={currentScore.vocabularyScore} /><Score label="Authority" value={currentScore.authorityScore} /><Score label="Clarity" value={currentScore.clarityScore} /></div><div className="grid gap-3 md:grid-cols-4">{["Total", "Vocabulary", "Authority", "Clarity"].map((label) => (<div key={label} className="text-xs text-neutral-500">{getScoreMeaning(label, helperLanguage)}</div>))}</div><div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5"><div className="mb-2 flex items-center justify-between gap-3"><div className="text-sm font-medium text-orange-300">Stronger authority version</div><Button onClick={speakStrongerVersion} size="sm" variant="outline"><Volume2 className="mr-2 h-4 w-4" /> Listen</Button></div><p className="leading-relaxed text-neutral-100">{activeScenario.targetAnswer}</p>{helperLanguage === "ru" && (<div className="mt-4 rounded-xl border border-neutral-800 bg-neutral-900 p-4 text-sm text-neutral-300"><div className="mb-1 font-medium text-orange-300">Перевод смысла</div>{activeScenario.targetAnswerRu}</div>)}<div className="mt-4 rounded-xl bg-neutral-900 p-4 text-sm text-neutral-300">{helperLanguage === "ru" ? "Повтори эту сильную версию вслух 3 раза. Потом запиши снова без подсказки." : "Repeat this version aloud 3 times. Then record again without looking."}</div></div><div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5"><div className="mb-2 text-sm font-medium text-neutral-300">{helperLanguage === "ru" ? "Фидбек" : "Feedback"}</div><p className="text-neutral-400">{getFeedbackCopy(currentScore.total, helperLanguage)}</p><div className="mt-4 rounded-xl bg-neutral-900 p-4 text-sm text-neutral-300"><div className="mb-1 font-medium text-orange-300">{helperLanguage === "ru" ? "Что сделать дальше" : "Next action"}</div>{getNextAction(currentScore.total, helperLanguage)}</div><div className="mt-4 text-sm text-neutral-500">{helperLanguage === "ru" ? "Смысл: ответ должен защищать твою стратегическую позицию. Не звучать как исполнитель. Веди разговор к продуктовой логике, риску, scope и качеству решений." : "Your answer should protect your strategic position. Avoid sounding like an executor. Lead the conversation toward product logic, risk, scope, and decision quality."}</div></div></motion.div>)}
+                {showFeedback && (<motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-6 space-y-4"><div className="grid gap-3 md:grid-cols-4"><Score label="Total" value={currentScore.total} /><Score label="Vocabulary" value={currentScore.vocabularyScore} /><Score label="Authority" value={currentScore.authorityScore} /><Score label="Clarity" value={currentScore.clarityScore} /></div><div className="grid gap-3 md:grid-cols-4">{["Total", "Vocabulary", "Authority", "Clarity"].map((label) => (<div key={label} className="text-xs text-neutral-500">{getScoreMeaning(label, helperLanguage)}</div>))}</div><div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5"><div className="mb-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div className="text-sm font-medium text-orange-300">Stronger authority version</div><div className="flex flex-wrap gap-2"><Button onClick={playAiVoice} size="sm" disabled={aiVoiceLoading}>{aiVoiceLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Volume2 className="mr-2 h-4 w-4" />}AI Voice</Button><Button onClick={speakBrowserVoice} size="sm" variant="outline"><Volume2 className="mr-2 h-4 w-4" /> Browser Listen</Button><Button onClick={stopAiVoice} size="sm" variant="outline">Stop</Button></div></div><div className="mb-4 grid gap-3 md:grid-cols-[1fr_1fr]"><div className="rounded-xl border border-neutral-800 bg-neutral-900 p-3"><div className="mb-2 text-xs text-neutral-500">AI voice mode</div><div className="flex gap-2"><Button size="sm" variant={aiVoiceMode === "slow" ? "default" : "outline"} onClick={() => setAiVoiceMode("slow")}>Slow</Button><Button size="sm" variant={aiVoiceMode === "normal" ? "default" : "outline"} onClick={() => setAiVoiceMode("normal")}>Natural</Button></div></div><div className="rounded-xl border border-neutral-800 bg-neutral-900 p-3"><div className="mb-2 text-xs text-neutral-500">AI voice</div><select value={aiVoiceName} onChange={(e) => setAiVoiceName(e.target.value)} className="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-neutral-100"><option value="marin">marin — clear coach</option><option value="cedar">cedar — deep calm</option><option value="coral">coral — warm</option><option value="nova">nova — neutral</option><option value="shimmer">shimmer — soft</option></select></div></div>{aiVoiceStatus && (<div className="mb-4 rounded-xl border border-orange-500/30 bg-orange-500/10 p-3 text-sm text-orange-100">{aiVoiceStatus}</div>)}<p className="leading-relaxed text-neutral-100">{activeScenario.targetAnswer}</p>{helperLanguage === "ru" && (<div className="mt-4 grid gap-3 md:grid-cols-2"><div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4 text-sm text-neutral-300"><div className="mb-1 font-medium text-orange-300">Перевод смысла</div>{activeScenario.targetAnswerRu}</div><details className="rounded-xl border border-neutral-800 bg-neutral-900 p-4 text-sm text-neutral-300"><summary className="cursor-pointer font-medium text-orange-300">Сомневаюсь, как прочитать</summary><div className="mt-2">{getTargetReading(activeScenario.id)}</div></details></div>)}<div className="mt-4 rounded-xl bg-neutral-900 p-4 text-sm text-neutral-300">{helperLanguage === "ru" ? "Сначала попробуй прочитать английскую версию сама. Если есть сомнение, открой «Сомневаюсь, как прочитать». Потом повтори без подсказки. Browser Listen оставлен только как запасной вариант." : "Use AI Voice in Slow mode, shadow it aloud 3 times. Browser Listen is only a fallback."}</div></div><div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5"><div className="mb-2 text-sm font-medium text-neutral-300">{helperLanguage === "ru" ? "Фидбек" : "Feedback"}</div><p className="text-neutral-400">{getFeedbackCopy(currentScore.total, helperLanguage)}</p><div className="mt-4 rounded-xl bg-neutral-900 p-4 text-sm text-neutral-300"><div className="mb-1 font-medium text-orange-300">{helperLanguage === "ru" ? "Что сделать дальше" : "Next action"}</div>{getNextAction(currentScore.total, helperLanguage)}</div><div className="mt-4 text-sm text-neutral-500">{helperLanguage === "ru" ? "Смысл: ответ должен защищать твою стратегическую позицию. Не звучать как исполнитель. Веди разговор к продуктовой логике, риску, scope и качеству решений." : "Your answer should protect your strategic position. Avoid sounding like an executor. Lead the conversation toward product logic, risk, scope, and decision quality."}</div></div></motion.div>)}
               </CardContent></Card>
             </div>
           </TabsContent>
 
           <TabsContent value="scenarios"><div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">{scenarios.map((scenario) => (<Card key={scenario.id} className="border-neutral-800 bg-neutral-900 text-neutral-50"><CardContent className="p-5"><Badge className="mb-3 bg-neutral-800 text-neutral-200">{scenario.type}</Badge><h3 className="mb-1 text-lg font-semibold">{scenario.title}</h3>{helperLanguage === "ru" && (<p className="mb-3 text-sm text-neutral-500">{scenario.titleRu}</p>)}<p className="mb-2 text-sm text-neutral-400">“{scenario.founderLine}”</p>{helperLanguage === "ru" && (<p className="mb-4 text-sm text-neutral-500">{scenario.founderLineRu}</p>)}<Button onClick={() => { setActiveScenario(scenario); setAttempt(""); setShowFeedback(false); setActiveTab("daily"); }} className="w-full"><Play className="mr-2 h-4 w-4" /> {helperLanguage === "ru" ? "Practice / Начать тренировку" : "Practice"}</Button></CardContent></Card>))}</div></TabsContent>
 
-          <TabsContent value="phrases"><Card className="border-neutral-800 bg-neutral-900 text-neutral-50"><CardContent className="p-6"><div className="mb-5 flex items-center gap-3"><BookOpen className="h-5 w-5 text-orange-400" /><h2 className="text-2xl font-semibold">Authority Phrase Bank</h2></div><Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search phrases, domains, or meaning..." className="mb-5 border-neutral-700 bg-neutral-950 text-neutral-50 placeholder:text-neutral-600" /><div className="grid gap-4 md:grid-cols-2">{filteredPhrases.map((item) => (<div key={item.phrase} className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5"><Badge variant="outline" className="mb-3 border-orange-500/40 text-orange-300">{item.domain}</Badge><p className="mb-2 text-lg font-medium text-neutral-100">{item.phrase}</p><p className="text-sm text-neutral-400">{item.meaning}</p></div>))}</div></CardContent></Card></TabsContent>
+          <TabsContent value="phrases"><Card className="border-neutral-800 bg-neutral-900 text-neutral-50"><CardContent className="p-6"><div className="mb-5 flex items-center gap-3"><BookOpen className="h-5 w-5 text-orange-400" /><h2 className="text-2xl font-semibold">Authority Phrase Bank</h2></div><Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search phrases, domains, or meaning..." className="mb-5 border-neutral-700 bg-neutral-950 text-neutral-50 placeholder:text-neutral-600" /><div className="grid gap-4 md:grid-cols-2">{filteredPhrases.map((item) => (<div key={item.phrase} className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5"><Badge variant="outline" className="mb-3 border-orange-500/40 text-orange-300">{item.domain}</Badge><p className="mb-2 text-lg font-medium text-neutral-100">{item.phrase}</p><p className="text-sm text-neutral-400">{item.meaning}</p>{helperLanguage === "ru" && getPhraseReading(item.phrase) && (<details className="mt-3 rounded-xl border border-neutral-800 bg-neutral-900 p-3 text-sm text-neutral-300"><summary className="cursor-pointer font-medium text-orange-300">Сомневаюсь, как прочитать</summary><div className="mt-2">{getPhraseReading(item.phrase)}</div></details>)}</div>))}</div></CardContent></Card></TabsContent>
 
           <TabsContent value="conference"><div className="grid gap-6 lg:grid-cols-[1fr_1fr]"><Card className="border-neutral-800 bg-neutral-900 text-neutral-50"><CardContent className="p-6"><div className="mb-5 flex items-center gap-3"><Trophy className="h-5 w-5 text-orange-400" /><h2 className="text-2xl font-semibold">Conference Track</h2></div><div className="space-y-4">{[["Month 1–3", "1-minute architecture explanations"], ["Month 4–6", "3-minute founder-facing insights"], ["Month 7–12", "10-minute product architecture talks"], ["Year 2", "20–30 minute conference keynote + Q&A"]].map(([period, goal]) => (<div key={period} className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5"><div className="mb-1 text-sm text-orange-300">{period}</div><div className="text-neutral-100">{goal}</div></div>))}</div></CardContent></Card><Card className="border-neutral-800 bg-neutral-900 text-neutral-50"><CardContent className="p-6"><h3 className="mb-4 text-xl font-semibold">Main talk thesis</h3><div className="rounded-2xl border border-orange-500/30 bg-orange-500/10 p-5"><p className="text-2xl font-semibold leading-tight">AI Won’t Save a Product Built on Weak Decisions</p><p className="mt-4 text-neutral-300">A conference-level topic connecting no-code speed, AI implementation risk, data structure, and product architecture.</p>{helperLanguage === "ru" && (<p className="mt-3 rounded-xl bg-neutral-900 p-3 text-sm text-neutral-400">Тема для международного выступления: как скорость no-code и AI становится риском, если продукт построен на слабых решениях.</p>)}</div><div className="mt-5 space-y-3 text-neutral-300"><p>1. No-code made building faster.</p><p>2. AI made experimentation easier.</p><p>3. But weak decisions still become expensive systems.</p><p>4. Architecture is how founders protect speed from becoming risk.</p></div></CardContent></Card></div></TabsContent>
 
