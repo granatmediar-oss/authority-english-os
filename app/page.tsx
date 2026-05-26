@@ -588,11 +588,11 @@ export default function LanguageGoalOS() {
   }, [clientKey, setClientKey]);
 
   useEffect(() => {
-    const db = supabaseClient;
-    if (!db || !clientKey) {
+    if (!supabaseClient || !clientKey) {
       setSyncStatus(isSupabaseConfigured() ? "" : t.syncOff);
       return;
     }
+    const db = supabaseClient!;
     let cancelled = false;
     async function loadCloudState() {
       setSyncStatus(t.syncSaving);
@@ -646,8 +646,8 @@ export default function LanguageGoalOS() {
   }, [supabaseClient, clientKey]);
 
   useEffect(() => {
-    const db = supabaseClient;
-    if (!db || !clientKey) return;
+    if (!supabaseClient || !clientKey) return;
+    const db = supabaseClient!;
     const timer = setTimeout(async () => {
       setSyncStatus(t.syncSaving);
       const { error } = await db.from("user_profiles").upsert(
@@ -687,7 +687,7 @@ export default function LanguageGoalOS() {
     setAttempts([row, ...attempts]);
     setShowFeedback(true);
 
-    const db = supabaseClient;
+    const db = supabaseClient!;
     if (db && clientKey) {
       setSyncStatus(t.syncSaving);
       const { error } = await db.from("learning_attempts").insert({
@@ -710,7 +710,7 @@ export default function LanguageGoalOS() {
 
   const clearAllProgress = async () => {
     setAttempts([]);
-    const db = supabaseClient;
+    const db = supabaseClient!;
     if (db && clientKey) {
       setSyncStatus(t.syncSaving);
       const { error } = await db.from("learning_attempts").delete().eq("client_key", clientKey);
