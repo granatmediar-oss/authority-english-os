@@ -564,7 +564,7 @@ export default function LanguageGoalOS() {
   const [recordingStatus, setRecordingStatus] = useState(uiText[ui].statusReady);
   const recognitionRef = useRef<any>(null);
   const recordingBaseRef = useRef<string>("");
-  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
+  const supabaseClient = useMemo(() => createSupabaseBrowserClient(), []);
 
   const t = uiText[ui];
   const selectedGoal = goals.find((g) => g.id === goal)!;
@@ -588,12 +588,11 @@ export default function LanguageGoalOS() {
   }, [clientKey, setClientKey]);
 
   useEffect(() => {
-    if (!supabase || !clientKey) {
+    if (!supabaseClient || !clientKey) {
       setSyncStatus(isSupabaseConfigured() ? "" : t.syncOff);
       return;
     }
-
-    const db = supabase;
+    const db = supabaseClient!;
     let cancelled = false;
     async function loadCloudState() {
       setSyncStatus(t.syncSaving);
@@ -644,11 +643,11 @@ export default function LanguageGoalOS() {
     return () => {
       cancelled = true;
     };
-  }, [supabase, clientKey]);
+  }, [supabaseClient, clientKey]);
 
   useEffect(() => {
-    if (!supabase || !clientKey) return;
-    const db = supabase;
+    if (!supabaseClient || !clientKey) return;
+    const db = supabaseClient!;
     const timer = setTimeout(async () => {
       setSyncStatus(t.syncSaving);
       const { error } = await db.from("user_profiles").upsert(
@@ -666,7 +665,7 @@ export default function LanguageGoalOS() {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [supabase, clientKey, ui, targetLang, goal, level]);
+  }, [supabaseClient, clientKey, ui, targetLang, goal, level]);
 
   const activeScenario = scenarios.find((s) => s.id === activeScenarioId) || routeScenarios[0] || scenarios[0];
   const score = useMemo(() => scoreAttempt(attempt, activeScenario, level, helpOpens), [attempt, activeScenario, level, helpOpens]);
@@ -688,8 +687,8 @@ export default function LanguageGoalOS() {
     setAttempts([row, ...attempts]);
     setShowFeedback(true);
 
-    if (supabase && clientKey) {
-      const db = supabase;
+    const db = supabaseClient!;
+    if (db && clientKey) {
       setSyncStatus(t.syncSaving);
       const { error } = await db.from("learning_attempts").insert({
         client_key: clientKey,
@@ -711,8 +710,8 @@ export default function LanguageGoalOS() {
 
   const clearAllProgress = async () => {
     setAttempts([]);
-    if (supabase && clientKey) {
-      const db = supabase;
+    const db = supabaseClient!;
+    if (db && clientKey) {
       setSyncStatus(t.syncSaving);
       const { error } = await db.from("learning_attempts").delete().eq("client_key", clientKey);
       setSyncStatus(error ? t.syncError : t.syncSaved);
@@ -818,7 +817,7 @@ export default function LanguageGoalOS() {
               <Button size="sm" variant={ui === "ru" ? "default" : "outline"} className={ui === "ru" ? "bg-orange-500 hover:bg-orange-600" : "border-neutral-700 bg-transparent text-neutral-100"} onClick={() => setUi("ru")}>RU / РФ</Button>
               <HelpButton ui={ui} title={ui === "ru" ? "Как пользоваться" : "How to use"} body={ui === "ru" ? "Сначала выберите язык, цель и уровень. Потом каждый день проходите один сценарий: прочитать, сказать, записать, проверить, повторить сильную версию." : "Choose language, goal, and level. Then complete one daily scenario: read, speak, record, analyze, repeat the stronger version."} />
               <Badge variant="outline" className="border-neutral-700 text-neutral-300">
-                {supabase ? t.syncOn : t.syncOff}{syncStatus && ` · ${syncStatus}`}
+                {supabaseClient ? t.syncOn : t.syncOff}{syncStatus && ` · ${syncStatus}`}
               </Badge>
             </div>
           </div>
