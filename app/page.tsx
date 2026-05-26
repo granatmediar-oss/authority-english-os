@@ -86,6 +86,23 @@ type GeneratedRouteResponse = {
   route: GeneratedRoute;
 };
 
+type AiFeedback = {
+  source: "openai" | "fallback";
+  warning?: string;
+  totalScore: number;
+  vocabularyScore: number;
+  positionScore: number;
+  clarityScore: number;
+  meaningScore: number;
+  correctedAnswer: string;
+  strongerVersion: string;
+  feedbackRu: string;
+  feedbackEn: string;
+  nextActionRu: string;
+  nextActionEn: string;
+  keyPhrasesToRepeat: string[];
+};
+
 const uiText = {
   ru: {
     productBadge: "Goal-Based Language OS",
@@ -134,6 +151,13 @@ const uiText = {
     last: "Последний балл",
     whySimple: "Сейчас задача — быть понятным, а не идеальным.",
     feedbackTitle: "Фидбек",
+    aiFeedback: "AI-фидбек",
+    aiAnalyzing: "AI анализирует ответ...",
+    aiFallback: "Пока используется безопасный базовый фидбек. Добавьте OPENAI_API_KEY, чтобы включить настоящий AI-анализ.",
+    meaning: "Смысл",
+    corrected: "Исправленная версия",
+    nextAction: "Следующее действие",
+    repeatPhrases: "Фразы для повторения",
     total: "Общий балл",
     vocab: "Слова",
     authority: "Позиция",
@@ -210,6 +234,13 @@ const uiText = {
     last: "Last score",
     whySimple: "Your task now is to be understood, not perfect.",
     feedbackTitle: "Feedback",
+    aiFeedback: "AI feedback",
+    aiAnalyzing: "AI is analyzing the answer...",
+    aiFallback: "Safe basic feedback is used for now. Add OPENAI_API_KEY to enable real AI analysis.",
+    meaning: "Meaning",
+    corrected: "Corrected version",
+    nextAction: "Next action",
+    repeatPhrases: "Phrases to repeat",
     total: "Total",
     vocab: "Vocabulary",
     authority: "Position",
@@ -627,6 +658,8 @@ export default function LanguageGoalOS() {
   const [mainFear, setMainFear] = useLocalStorage<string>("lgos_main_fear", "");
   const [isGeneratingRoute, setIsGeneratingRoute] = useState(false);
   const [routeGenerationError, setRouteGenerationError] = useState("");
+  const [aiFeedback, setAiFeedback] = useState<AiFeedback | null>(null);
+  const [isAnalyzingAttempt, setIsAnalyzingAttempt] = useState(false);
   const [clientKey, setClientKey] = useLocalStorage<string>("lgos_client_key", "");
   const [syncStatus, setSyncStatus] = useState("");
   const [isRecording, setIsRecording] = useState(false);
@@ -743,8 +776,72 @@ export default function LanguageGoalOS() {
   const activeScenario = routeScenarios.find((s) => s.id === activeScenarioId) || scenarios.find((s) => s.id === activeScenarioId) || routeScenarios[0] || scenarios[0];
   const score = useMemo(() => scoreAttempt(attempt, activeScenario, level, helpOpens), [attempt, activeScenario, level, helpOpens]);
 
+  const fallbackFeedback: AiFeedback = {
+    source: "fallback",
+    totalScore: score.total,
+    vocabularyScore: score.vocabularyScore,
+    positionScore: score.positionScore,
+    clarityScore: score.clarityScore,
+    meaningScore: score.positionScore,
+    correctedAnswer: attempt,
+    strongerVersion: activeScenario.stronger,
+    feedbackRu: makeRuFeedback(score, level),
+    feedbackEn: makeEnFeedback(score, level),
+    nextActionRu: "Повторите сильную версию 3 раза вслух. Потом очистите поле и запишите ответ снова без подсказки.",
+    nextActionEn: "Repeat the stronger version aloud 3 times. Then clear the field and record again without looking.",
+    keyPhrasesToRepeat: [activeScenario.beginner, activeScenario.stronger].filter(Boolean),
+  };
+
+  const analyzeAttemptWithAI = async (): Promise<AiFeedback> => {
+    try {
+      const response = await fetch("/api/analyze-attempt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          interfaceLanguage: ui,
+          targetLanguage: targetLang,
+          goal,
+          level,
+          transcript: attempt,
+          scenario: {
+            titleEn: activeScenario.titleEn,
+            titleRu: activeScenario.titleRu,
+            situationEn: activeScenario.situationEn,
+            situationRu: activeScenario.situationRu,
+            beginner: activeScenario.beginner,
+            beginnerRu: activeScenario.beginnerRu,
+            stronger: activeScenario.stronger,
+            strongerRu: activeScenario.strongerRu,
+            keywords: activeScenario.keywords,
+            principleEn: activeScenario.principleEn,
+            principleRu: activeScenario.principleRu,
+          },
+        }),
+      });
+      if (!response.ok) throw new Error("AI feedback failed");
+      const data = (await response.json()) as AiFeedback;
+      return data;
+    } catch {
+      return fallbackFeedback;
+    }
+  };
+
   const saveAttempt = async () => {
     if (!attempt.trim()) return;
+    setIsAnalyzingAttempt(true);
+    setShowFeedback(true);
+    const feedback = await analyzeAttemptWithAI();
+    setAiFeedback(feedback);
+    setIsAnalyzingAttempt(false);
+
+    const finalScores = {
+      total: Math.round(feedback.totalScore ?? score.total),
+      vocabularyScore: Math.round(feedback.vocabularyScore ?? score.vocabularyScore),
+      positionScore: Math.round(feedback.positionScore ?? score.positionScore),
+      clarityScore: Math.round(feedback.clarityScore ?? score.clarityScore),
+      meaningScore: Math.round(feedback.meaningScore ?? score.positionScore),
+    };
+
     const row = {
       id: Date.now(),
       date: new Date().toLocaleString(),
@@ -754,11 +851,12 @@ export default function LanguageGoalOS() {
       scenarioId: activeScenario.id,
       scenarioTitle: ui === "ru" ? activeScenario.titleRu : activeScenario.titleEn,
       answer: attempt,
-      ...score,
+      ...finalScores,
       helpOpens,
+      feedbackSource: feedback.source,
+      nextAction: ui === "ru" ? feedback.nextActionRu : feedback.nextActionEn,
     };
     setAttempts([row, ...attempts]);
-    setShowFeedback(true);
 
     const db = supabaseClient!;
     if (db && clientKey) {
@@ -771,10 +869,10 @@ export default function LanguageGoalOS() {
         scenario_id: activeScenario.id,
         scenario_title: row.scenarioTitle,
         answer: attempt,
-        score_total: score.total,
-        score_vocabulary: score.vocabularyScore,
-        score_position: score.positionScore,
-        score_clarity: score.clarityScore,
+        score_total: finalScores.total,
+        score_vocabulary: finalScores.vocabularyScore,
+        score_position: finalScores.positionScore,
+        score_clarity: finalScores.clarityScore,
         help_opens: helpOpens,
       });
       setSyncStatus(error ? t.syncError : t.syncSaved);
@@ -809,6 +907,7 @@ export default function LanguageGoalOS() {
         setActiveScenarioId(first.id);
         setAttempt("");
         setShowFeedback(false);
+        setAiFeedback(null);
       }
       if (data.warning) setRouteGenerationError(t.routeError);
     } catch (error: any) {
@@ -823,6 +922,7 @@ export default function LanguageGoalOS() {
     setActiveScenarioId(first.id);
     setAttempt("");
     setShowFeedback(false);
+    setAiFeedback(null);
     setActiveTab("training");
   };
 
@@ -830,6 +930,7 @@ export default function LanguageGoalOS() {
     setActiveScenarioId(scenario.id);
     setAttempt("");
     setShowFeedback(false);
+    setAiFeedback(null);
     setActiveTab("training");
   };
 
@@ -1061,27 +1162,45 @@ export default function LanguageGoalOS() {
 
                   {showFeedback && (
                     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-6 space-y-4">
+                      {isAnalyzingAttempt && <div className="rounded-2xl border border-orange-500/30 bg-orange-500/10 p-4 text-orange-100">{t.aiAnalyzing}</div>}
                       <div className="grid gap-3 md:grid-cols-4">
-                        <Score label={t.total} value={score.total} />
-                        <Score label={t.vocab} value={score.vocabularyScore} />
-                        <Score label={t.authority} value={score.positionScore} />
-                        <Score label={t.clarity} value={score.clarityScore} />
+                        <Score label={t.total} value={aiFeedback?.totalScore ?? score.total} />
+                        <Score label={t.vocab} value={aiFeedback?.vocabularyScore ?? score.vocabularyScore} />
+                        <Score label={t.authority} value={aiFeedback?.positionScore ?? score.positionScore} />
+                        <Score label={t.clarity} value={aiFeedback?.clarityScore ?? score.clarityScore} />
                       </div>
                       <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5">
                         <div className="mb-3 flex items-center justify-between gap-3">
                           <div className="text-sm font-medium text-orange-300">{t.stronger}</div>
                           <div className="flex gap-2">
-                            <Button size="sm" onClick={() => speak(activeScenario.stronger, true)} variant="outline" className="border-neutral-700 bg-transparent text-neutral-100 hover:bg-neutral-800"><Volume2 className="mr-2 h-4 w-4" />Slow</Button>
-                            <Button size="sm" onClick={() => speak(activeScenario.stronger)} variant="outline" className="border-neutral-700 bg-transparent text-neutral-100 hover:bg-neutral-800"><Volume2 className="mr-2 h-4 w-4" />{t.listen}</Button>
+                            <Button size="sm" onClick={() => speak(aiFeedback?.strongerVersion || activeScenario.stronger, true)} variant="outline" className="border-neutral-700 bg-transparent text-neutral-100 hover:bg-neutral-800"><Volume2 className="mr-2 h-4 w-4" />Slow</Button>
+                            <Button size="sm" onClick={() => speak(aiFeedback?.strongerVersion || activeScenario.stronger)} variant="outline" className="border-neutral-700 bg-transparent text-neutral-100 hover:bg-neutral-800"><Volume2 className="mr-2 h-4 w-4" />{t.listen}</Button>
                           </div>
                         </div>
-                        <p className="text-xl leading-relaxed text-neutral-100">{activeScenario.stronger}</p>
+                        <p className="text-xl leading-relaxed text-neutral-100">{aiFeedback?.strongerVersion || activeScenario.stronger}</p>
                         <p className="mt-3 text-neutral-400"><span className="text-orange-300">{t.translation}:</span> {activeScenario.strongerRu}</p>
                         <PronunciationHelp ui={ui} text={activeScenario.strongerReadRu} onOpen={() => setHelpOpens((v) => v + 1)} />
                       </div>
                       <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5">
-                        <div className="mb-2 text-sm font-medium text-neutral-300">{t.feedbackTitle}</div>
-                        <p className="text-neutral-400">{ui === "ru" ? makeRuFeedback(score, level) : makeEnFeedback(score, level)}</p>
+                        <div className="mb-2 text-sm font-medium text-neutral-300">{t.aiFeedback}</div>
+                        {aiFeedback?.source === "fallback" && <p className="mb-3 rounded-xl border border-orange-500/30 bg-orange-500/10 p-3 text-sm text-orange-100">{t.aiFallback}</p>}
+                        <p className="text-neutral-300">{ui === "ru" ? (aiFeedback?.feedbackRu || makeRuFeedback(score, level)) : (aiFeedback?.feedbackEn || makeEnFeedback(score, level))}</p>
+                        {aiFeedback?.correctedAnswer && (
+                          <div className="mt-4 rounded-xl border border-neutral-800 bg-neutral-900 p-4">
+                            <div className="mb-2 text-sm text-orange-300">{t.corrected}</div>
+                            <p className="text-neutral-100">{aiFeedback.correctedAnswer}</p>
+                          </div>
+                        )}
+                        <div className="mt-4 rounded-xl border border-neutral-800 bg-neutral-900 p-4">
+                          <div className="mb-2 text-sm text-orange-300">{t.nextAction}</div>
+                          <p className="text-neutral-100">{ui === "ru" ? (aiFeedback?.nextActionRu || fallbackFeedback.nextActionRu) : (aiFeedback?.nextActionEn || fallbackFeedback.nextActionEn)}</p>
+                        </div>
+                        {!!aiFeedback?.keyPhrasesToRepeat?.length && (
+                          <div className="mt-4 rounded-xl border border-neutral-800 bg-neutral-900 p-4">
+                            <div className="mb-2 text-sm text-orange-300">{t.repeatPhrases}</div>
+                            <ul className="space-y-1 text-sm text-neutral-200">{aiFeedback.keyPhrasesToRepeat.map((phrase) => <li key={phrase}>• {phrase}</li>)}</ul>
+                          </div>
+                        )}
                       </div>
                     </motion.div>
                   )}
@@ -1233,7 +1352,7 @@ function makeEnFeedback(score: any, level: LevelId) {
   return level === "zero" ? "Good start. Now try to say the same idea without help." : "Good answer. Next step: make it more natural and faster in a live dialogue.";
 }
 function Metric({ label, value }: { label: string; value: number }) { return <div className="mb-3"><div className="mb-1 flex justify-between text-sm text-neutral-400"><span>{label}</span><span>{value}%</span></div><Progress value={value} /></div>; }
-function Score({ label, value }: { label: string; value: number }) { return <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-4"><div className="text-sm text-neutral-500">{label}</div><div className="mt-1 text-3xl font-semibold text-neutral-100">{value}</div><Progress value={Math.min(100, value)} className="mt-3" /></div>; }
+function Score({ label, value }: { label: string; value: number }) { const safeValue = Math.round(Number(value) || 0); return <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-4"><div className="text-sm text-neutral-500">{label}</div><div className="mt-1 text-3xl font-semibold text-neutral-100">{safeValue}</div><Progress value={Math.min(100, safeValue)} className="mt-3" /></div>; }
 function SectionTitle({ icon, title }: { icon: React.ReactNode; title: string }) { return <div className="mb-3 flex items-center gap-2 text-lg font-semibold text-neutral-100"> <span className="text-orange-400">{icon}</span>{title}</div>; }
 function InfoBlock({ label, text, orange = false }: { label: string; text: string; orange?: boolean }) { return <div className={`mt-5 rounded-2xl border p-5 ${orange ? "border-orange-500/30 bg-orange-500/10" : "border-neutral-800 bg-neutral-950"}`}><div className={`mb-2 text-sm font-medium ${orange ? "text-orange-300" : "text-neutral-400"}`}>{label}</div><p className="text-lg leading-relaxed text-neutral-100">{text}</p></div>; }
 function HelpButton({ ui, title, body }: { ui: UI; title: string; body: string }) { const [open, setOpen] = useState(false); return <div className="relative"><Button size="sm" variant="outline" className="border-neutral-700 bg-transparent text-neutral-100 hover:bg-neutral-800" onClick={() => setOpen((v) => !v)}><HelpCircle className="mr-2 h-4 w-4" />{title}</Button>{open && <div className="absolute right-0 z-20 mt-2 w-72 rounded-2xl border border-neutral-700 bg-neutral-900 p-4 text-sm text-neutral-300 shadow-2xl"><div className="mb-2 font-semibold text-neutral-100">{title}</div>{body}</div>}</div>; }

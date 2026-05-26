@@ -59,3 +59,25 @@ OPENAI_MODEL=gpt-4o-mini
 ```
 
 If `OPENAI_API_KEY` is not set, the app still works and returns a safe demo route. This allows beta testing without API balance.
+
+## Phase 3: AI feedback engine
+
+This version adds `/api/analyze-attempt`.
+
+The speaking loop is now:
+
+1. User records voice or types manually.
+2. Browser speech recognition creates the transcript.
+3. User clicks Analyze.
+4. The app sends the transcript, scenario, level, goal and target language to `/api/analyze-attempt`.
+5. If `OPENAI_API_KEY` exists, OpenAI returns structured feedback.
+6. If no API key or no balance, the app uses safe fallback feedback and still works.
+
+Environment variable for real AI feedback:
+
+```bash
+OPENAI_API_KEY=your_openai_api_key
+OPENAI_MODEL=gpt-4o-mini
+```
+
+ChatGPT Plus does not include API usage. OpenAI API billing is separate.
