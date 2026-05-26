@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,8 @@ import {
   Volume2,
   Languages,
   Loader2,
+  HelpCircle,
+  X,
 } from "lucide-react";
 
 declare global {
@@ -56,9 +58,15 @@ type HelperLanguage = "en" | "ru";
 type SavedAttempt = {
   id: number;
   scenario: string;
+  scenarioRu: string;
+  scenarioType: string;
   answer: string;
   score: number;
+  vocabularyScore: number;
+  authorityScore: number;
+  clarityScore: number;
   date: string;
+  time: string;
 };
 
 const scenarios: Scenario[] = [
@@ -630,6 +638,309 @@ function getPhraseReading(phrase: string) {
   return readings[phrase] || "";
 }
 
+function getHelpCopy(key: string, lang: HelperLanguage) {
+  const ru: Record<string, { title: string; body: string; steps: string[] }> = {
+    platform: {
+      title: "Как устроена платформа",
+      body: "Это тренажёр английского через реальные профессиональные ситуации. Твоя задача — не просто читать фразы, а говорить их вслух, получать обратную связь и повторять сильную версию.",
+      steps: [
+        "Начни с раздела «Начать» и возьми фразу дня.",
+        "Перейди в «Тренировка» и произнеси простой ответ вслух.",
+        "Запиши голос или введи ответ вручную.",
+        "Нажми «Проверить ответ», иначе попытка не попадёт в прогресс.",
+        "Повтори сильную версию и запиши себя снова без подсказки.",
+      ],
+    },
+    start: {
+      title: "Раздел «Начать»",
+      body: "Это стартовая дорожка для новичка. Здесь не нужно проходить всё сразу. Каждый день бери одну фразу и доводи её до автоматизма.",
+      steps: [
+        "Прочитай английскую фразу.",
+        "Пойми перевод.",
+        "Произнеси фразу 10–20 раз вслух.",
+        "Открой подсказку «Сомневаюсь, как прочитать» только если застряла.",
+      ],
+    },
+    daily: {
+      title: "Раздел «Тренировка»",
+      body: "Это главный рабочий экран. Здесь ты тренируешь ответ на одну реальную ситуацию: сначала простой ответ, потом более сильную профессиональную версию.",
+      steps: [
+        "Прочитай, что говорит founder.",
+        "Скажи простой ответ вслух.",
+        "Запиши или введи свою версию.",
+        "Нажми «Проверить ответ».",
+        "Повтори сильную версию и попробуй снова.",
+      ],
+    },
+    founder: {
+      title: "Founder говорит",
+      body: "Это реплика клиента или founder’а. Она создаёт контекст, на который ты должна ответить как Product Architect, а не как исполнитель.",
+      steps: [
+        "Сначала пойми смысл фразы.",
+        "Не переводи слово в слово.",
+        "Ответь коротко, но из позиции архитектуры.",
+      ],
+    },
+    principle: {
+      title: "Принцип позиции",
+      body: "Этот блок объясняет, какую профессиональную позицию нужно удержать в ответе. Он защищает тебя от ухода в роль ‘просто разработчика’. ",
+      steps: [
+        "Прочитай принцип перед ответом.",
+        "Спроси себя: я веду разговор к архитектуре или к исполнению?",
+        "Добавь в ответ риск, структуру или границу.",
+      ],
+    },
+    vocabulary: {
+      title: "Ключевой словарь",
+      body: "Это слова, которые помогают звучать профессионально. Они повышают Vocabulary score и постепенно формируют твой рабочий словарь для международных calls.",
+      steps: [
+        "Выбери 2–3 слова.",
+        "Добавь их в свой ответ.",
+        "Повтори ответ вслух с этими словами.",
+      ],
+    },
+    attempt: {
+      title: "Твоя попытка ответа",
+      body: "Здесь появляется то, что ты сказала или написала. Для результата важно сначала говорить вслух, а потом уже смотреть на текст.",
+      steps: [
+        "Скажи ответ вслух.",
+        "Запиши голосом или введи вручную.",
+        "Не пытайся сразу быть идеальной — цель в повторении.",
+      ],
+    },
+    voice: {
+      title: "Голосовая практика",
+      body: "Этот блок нужен, чтобы тренировать именно речь. Если браузер плохо распознал голос, используй ручной режим: произнеси вслух и введи текст сама.",
+      steps: [
+        "Нажми «Записать».",
+        "Скажи ответ на английском.",
+        "Нажми «Стоп».",
+        "Проверь текст и нажми «Проверить ответ».",
+      ],
+    },
+    analyze: {
+      title: "Проверить ответ",
+      body: "Эта кнопка запускает оценку и сохраняет попытку в прогресс. Если её не нажать, статистика не обновится.",
+      steps: [
+        "Заполни поле ответа.",
+        "Нажми «Проверить ответ».",
+        "Смотри оценки и сильную версию.",
+        "Повтори сильную версию и сделай новую попытку.",
+      ],
+    },
+    scores: {
+      title: "Оценки ответа",
+      body: "Оценки показывают направление, а не ‘экзаменационный балл’. Сейчас это MVP-логика: она помогает понять, хватает ли профессиональных слов, позиции и ясности.",
+      steps: [
+        "Vocabulary — профессиональные слова.",
+        "Authority — звучишь ли как архитектор.",
+        "Clarity — насколько понятно можно сказать это на звонке.",
+        "Total — общий ориентир.",
+      ],
+    },
+    stronger: {
+      title: "Сильная версия ответа",
+      body: "Это пример того, как можно ответить сильнее. Не заучивай механически. Повторяй, пока смысл и структура не начнут звучать естественно.",
+      steps: [
+        "Прочитай английскую версию.",
+        "Посмотри перевод смысла.",
+        "Повтори вслух 3 раза.",
+        "Закрой подсказки и запиши себя снова.",
+      ],
+    },
+    scenarios: {
+      title: "Сценарии",
+      body: "Это библиотека рабочих ситуаций. Выбирай конкретную боль: цена, AI, архитектура, позиционирование, выступление.",
+      steps: [
+        "Выбери карточку.",
+        "Нажми «Начать тренировку».",
+        "Система откроет «Тренировку» с выбранным сценарием.",
+      ],
+    },
+    phrases: {
+      title: "Фразы",
+      body: "Это твой банк профессиональных формулировок. Он нужен, чтобы не собирать английский с нуля каждый раз перед звонком.",
+      steps: [
+        "Ищи фразу по теме.",
+        "Прочитай перевод.",
+        "Произнеси вслух.",
+        "Добавь в свою речь на тренировке.",
+      ],
+    },
+    conference: {
+      title: "Выступление",
+      body: "Этот трек нужен не для сегодняшнего уровня, а для направления роста: от коротких объяснений к докладу на международной сцене.",
+      steps: [
+        "Начни с 1 минуты.",
+        "Потом расширяй до 3–5 минут.",
+        "Собирай главный тезис и примеры.",
+        "Готовь Q&A.",
+      ],
+    },
+    progress: {
+      title: "Прогресс",
+      body: "Здесь появляются только попытки, которые были проанализированы. Просто запись голоса не сохраняется как результат.",
+      steps: [
+        "Сделай ответ в «Тренировке».",
+        "Нажми «Проверить ответ».",
+        "Вернись в «Прогресс».",
+        "Смотри попытки, лучший балл и средний балл.",
+      ],
+    },
+  };
+
+  const en: Record<string, { title: string; body: string; steps: string[] }> = {
+    platform: {
+      title: "How the platform works",
+      body: "This is an English trainer built around real professional situations. Your goal is not to read phrases, but to speak them, get feedback, and repeat the stronger version.",
+      steps: [
+        "Start with Start Here.",
+        "Open Daily Drill.",
+        "Record or type your answer.",
+        "Click Analyze answer to save progress.",
+        "Repeat the stronger version and try again.",
+      ],
+    },
+    start: {
+      title: "Start Here",
+      body: "This is the beginner path. Take one phrase per day and make it automatic.",
+      steps: [
+        "Read the phrase.",
+        "Understand the meaning.",
+        "Repeat it aloud.",
+        "Use pronunciation help only if needed.",
+      ],
+    },
+    daily: {
+      title: "Daily Drill",
+      body: "This is the main practice screen for one real founder situation.",
+      steps: [
+        "Read the founder line.",
+        "Say the beginner answer.",
+        "Record or type your answer.",
+        "Analyze it.",
+        "Repeat the stronger version.",
+      ],
+    },
+    founder: {
+      title: "Founder says",
+      body: "This is the client/founder line you respond to as a Product Architect.",
+      steps: [
+        "Understand the situation.",
+        "Do not translate word for word.",
+        "Answer from architecture, not execution.",
+      ],
+    },
+    principle: {
+      title: "Authority principle",
+      body: "This explains the professional position to protect in your answer.",
+      steps: [
+        "Read it before answering.",
+        "Move the conversation toward architecture.",
+        "Name the risk, structure, or boundary.",
+      ],
+    },
+    vocabulary: {
+      title: "Key vocabulary",
+      body: "These words help you sound professional in founder calls.",
+      steps: ["Pick 2–3 words.", "Add them to your answer.", "Repeat aloud."],
+    },
+    attempt: {
+      title: "Your attempt",
+      body: "This is where your spoken or typed answer appears.",
+      steps: [
+        "Speak first.",
+        "Record or type.",
+        "Do not aim for perfect on the first try.",
+      ],
+    },
+    voice: {
+      title: "Voice practice",
+      body: "This block trains speech. If recognition fails, use manual mode.",
+      steps: [
+        "Click Record.",
+        "Speak in English.",
+        "Click Stop.",
+        "Analyze the answer.",
+      ],
+    },
+    analyze: {
+      title: "Analyze answer",
+      body: "This button scores and saves the attempt. Without it, progress will not update.",
+      steps: [
+        "Fill the answer box.",
+        "Click Analyze.",
+        "Review scores.",
+        "Try again.",
+      ],
+    },
+    scores: {
+      title: "Scores",
+      body: "Scores show direction, not a final exam result.",
+      steps: [
+        "Vocabulary — professional words.",
+        "Authority — architect position.",
+        "Clarity — clear for a real call.",
+        "Total — overall signal.",
+      ],
+    },
+    stronger: {
+      title: "Stronger version",
+      body: "This is a stronger example answer. Repeat it until it becomes natural.",
+      steps: [
+        "Read it.",
+        "Understand the meaning.",
+        "Repeat aloud.",
+        "Record again without looking.",
+      ],
+    },
+    scenarios: {
+      title: "Scenarios",
+      body: "This is the library of work situations.",
+      steps: [
+        "Choose a card.",
+        "Click Practice.",
+        "The app opens Daily Drill with that scenario.",
+      ],
+    },
+    phrases: {
+      title: "Phrase Bank",
+      body: "Your professional phrase library for calls and content.",
+      steps: [
+        "Search a topic.",
+        "Read the phrase.",
+        "Repeat aloud.",
+        "Use it in practice.",
+      ],
+    },
+    conference: {
+      title: "Conference",
+      body: "This track prepares you for public speaking over time.",
+      steps: [
+        "Start with 1 minute.",
+        "Expand to 3–5 minutes.",
+        "Build a thesis.",
+        "Prepare Q&A.",
+      ],
+    },
+    progress: {
+      title: "Progress",
+      body: "Only analyzed attempts appear here.",
+      steps: [
+        "Practice.",
+        "Analyze answer.",
+        "Return to Progress.",
+        "Track average and best score.",
+      ],
+    },
+  };
+
+  return (
+    (lang === "ru" ? ru : en)[key] ||
+    (lang === "ru" ? ru.platform : en.platform)
+  );
+}
+
 export default function AuthorityEnglishOS() {
   const [activeScenario, setActiveScenario] = useState<Scenario>(scenarios[0]);
   const [attempt, setAttempt] = useState("");
@@ -642,6 +953,7 @@ export default function AuthorityEnglishOS() {
   const [manualMode, setManualMode] = useState(false);
   const [helperLanguage, setHelperLanguage] = useState<HelperLanguage>("ru");
   const [activeTab, setActiveTab] = useState("start");
+  const [activeHelp, setActiveHelp] = useState<string | null>(null);
   const [aiVoiceStatus, setAiVoiceStatus] = useState("");
   const [aiVoiceLoading, setAiVoiceLoading] = useState(false);
   const [aiVoiceMode, setAiVoiceMode] = useState<"normal" | "slow">("slow");
@@ -660,19 +972,65 @@ export default function AuthorityEnglishOS() {
       .includes(search.toLowerCase()),
   );
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const stored = window.localStorage.getItem("authorityEnglishAttempts");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) setSavedAttempts(parsed);
+      }
+    } catch {
+      // Keep the app usable even if localStorage is unavailable.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const seen = window.localStorage.getItem("authorityEnglishOnboardingSeen");
+    if (!seen) {
+      setActiveHelp("platform");
+      window.localStorage.setItem("authorityEnglishOnboardingSeen", "true");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(
+        "authorityEnglishAttempts",
+        JSON.stringify(savedAttempts),
+      );
+    } catch {
+      // Keep progress in memory if localStorage is unavailable.
+    }
+  }, [savedAttempts]);
+
   const saveAttempt = () => {
     if (!attempt.trim()) return;
-    setSavedAttempts([
-      {
-        id: Date.now(),
-        scenario: activeScenario.title,
-        answer: attempt,
-        score: currentScore.total,
-        date: new Date().toLocaleDateString(),
-      },
-      ...savedAttempts,
-    ]);
+    const now = new Date();
+    const newAttempt: SavedAttempt = {
+      id: Date.now(),
+      scenario: activeScenario.title,
+      scenarioRu: activeScenario.titleRu,
+      scenarioType: activeScenario.type,
+      answer: attempt,
+      score: currentScore.total,
+      vocabularyScore: currentScore.vocabularyScore,
+      authorityScore: currentScore.authorityScore,
+      clarityScore: currentScore.clarityScore,
+      date: now.toLocaleDateString(),
+      time: now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    };
+    setSavedAttempts([newAttempt, ...savedAttempts]);
     setShowFeedback(true);
+  };
+
+  const clearProgress = () => {
+    setSavedAttempts([]);
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem("authorityEnglishAttempts");
+    }
   };
 
   const startRecording = () => {
@@ -854,6 +1212,14 @@ export default function AuthorityEnglishOS() {
               >
                 RU / РФ
               </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setActiveHelp("platform")}
+              >
+                <HelpCircle className="mr-2 h-4 w-4" />
+                {helperLanguage === "ru" ? "Как пользоваться" : "How it works"}
+              </Button>
             </div>
           </div>
           <Card className="border-neutral-800 bg-neutral-900 text-neutral-50 shadow-2xl">
@@ -936,11 +1302,18 @@ export default function AuthorityEnglishOS() {
                       ? "Стартовый режим на 30 дней"
                       : "30-Day Starter Mode"}
                   </Badge>
-                  <h2 className="text-3xl font-semibold">
-                    {helperLanguage === "ru"
-                      ? "Начать с нуля и не снизить свою позицию"
-                      : "Start from zero without lowering your position"}
-                  </h2>
+                  <div className="flex items-start justify-between gap-3">
+                    <h2 className="text-3xl font-semibold">
+                      {helperLanguage === "ru"
+                        ? "Начать с нуля и не снизить свою позицию"
+                        : "Start from zero without lowering your position"}
+                    </h2>
+                    <HelpButton
+                      helpKey="start"
+                      lang={helperLanguage}
+                      onOpen={setActiveHelp}
+                    />
+                  </div>
                   <p className="mt-4 text-neutral-300">
                     {helperLanguage === "ru"
                       ? "Первая цель — не свободный английский. Первая цель — повторять сильные фразы для founder calls, пока они не станут автоматическими."
@@ -967,9 +1340,18 @@ export default function AuthorityEnglishOS() {
               </Card>
               <Card className="border-neutral-800 bg-neutral-900 text-neutral-50">
                 <CardContent className="p-6">
-                  <h2 className="mb-5 text-2xl font-semibold">
-                    {helperLanguage === "ru" ? "Первые 7 дней" : "First 7 days"}
-                  </h2>
+                  <div className="mb-5 flex items-center justify-between gap-3">
+                    <h2 className="text-2xl font-semibold">
+                      {helperLanguage === "ru"
+                        ? "Первые 7 дней"
+                        : "First 7 days"}
+                    </h2>
+                    <HelpButton
+                      helpKey="start"
+                      lang={helperLanguage}
+                      onOpen={setActiveHelp}
+                    />
+                  </div>
                   <div className="space-y-4">
                     {starterPlan.map((item) => (
                       <div
@@ -1051,6 +1433,12 @@ export default function AuthorityEnglishOS() {
                       {helperLanguage === "ru"
                         ? "Founder говорит"
                         : "Founder says"}
+                      <HelpButton
+                        helpKey="founder"
+                        lang={helperLanguage}
+                        onOpen={setActiveHelp}
+                        compact
+                      />
                     </div>
                     <p className="text-xl leading-relaxed text-neutral-100">
                       “{activeScenario.founderLine}”
@@ -1067,6 +1455,12 @@ export default function AuthorityEnglishOS() {
                       {helperLanguage === "ru"
                         ? "Принцип позиции"
                         : "Authority principle"}
+                      <HelpButton
+                        helpKey="principle"
+                        lang={helperLanguage}
+                        onOpen={setActiveHelp}
+                        compact
+                      />
                     </div>
                     <p className="text-neutral-100">
                       {activeScenario.authorityPrinciple}
@@ -1082,6 +1476,12 @@ export default function AuthorityEnglishOS() {
                       {helperLanguage === "ru"
                         ? "Ключевой словарь"
                         : "Key vocabulary"}
+                      <HelpButton
+                        helpKey="vocabulary"
+                        lang={helperLanguage}
+                        onOpen={setActiveHelp}
+                        compact
+                      />
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {activeScenario.vocabulary.map((word, index) => (
@@ -1110,6 +1510,11 @@ export default function AuthorityEnglishOS() {
                         ? "Твоя попытка ответа"
                         : "Your speaking attempt"}
                     </h2>
+                    <HelpButton
+                      helpKey="attempt"
+                      lang={helperLanguage}
+                      onOpen={setActiveHelp}
+                    />
                   </div>
                   <p className="mb-4 text-neutral-400">
                     {helperLanguage === "ru"
@@ -1152,10 +1557,16 @@ export default function AuthorityEnglishOS() {
                     className="min-h-40 border-neutral-700 bg-neutral-950 text-neutral-50 placeholder:text-neutral-600"
                   />
                   <div className="mt-4 rounded-2xl border border-neutral-800 bg-neutral-950 p-4">
-                    <div className="mb-2 text-sm font-medium text-neutral-300">
+                    <div className="mb-2 flex items-center gap-2 text-sm font-medium text-neutral-300">
                       {helperLanguage === "ru"
                         ? "Режим голосовой практики"
                         : "Voice Practice Mode"}
+                      <HelpButton
+                        helpKey="voice"
+                        lang={helperLanguage}
+                        onOpen={setActiveHelp}
+                        compact
+                      />
                     </div>
                     <p className="mb-4 text-sm text-neutral-500">
                       {recordingStatus}
@@ -1208,6 +1619,11 @@ export default function AuthorityEnglishOS() {
                         ? "Проверить ответ"
                         : "Analyze answer"}
                     </Button>
+                    <HelpButton
+                      helpKey="analyze"
+                      lang={helperLanguage}
+                      onOpen={setActiveHelp}
+                    />
                     <Button onClick={nextScenario} variant="outline">
                       <RefreshCw className="mr-2 h-4 w-4" />{" "}
                       {helperLanguage === "ru"
@@ -1221,6 +1637,25 @@ export default function AuthorityEnglishOS() {
                       animate={{ opacity: 1, y: 0 }}
                       className="mt-6 space-y-4"
                     >
+                      <div className="flex items-center justify-between gap-3 rounded-2xl border border-neutral-800 bg-neutral-950 p-4">
+                        <div>
+                          <div className="text-sm font-medium text-orange-300">
+                            {helperLanguage === "ru"
+                              ? "Результат попытки"
+                              : "Attempt result"}
+                          </div>
+                          <p className="mt-1 text-sm text-neutral-500">
+                            {helperLanguage === "ru"
+                              ? "Смотри не только итоговый балл, а что именно просело: словарь, позиция или ясность."
+                              : "Look beyond the total score: check vocabulary, authority, and clarity."}
+                          </p>
+                        </div>
+                        <HelpButton
+                          helpKey="scores"
+                          lang={helperLanguage}
+                          onOpen={setActiveHelp}
+                        />
+                      </div>
                       <div className="grid gap-3 md:grid-cols-4">
                         <Score
                           label={helperLanguage === "ru" ? "Итог" : "Total"}
@@ -1263,6 +1698,12 @@ export default function AuthorityEnglishOS() {
                             {helperLanguage === "ru"
                               ? "Сильная версия ответа"
                               : "Stronger authority version"}
+                            <HelpButton
+                              helpKey="stronger"
+                              lang={helperLanguage}
+                              onOpen={setActiveHelp}
+                              compact
+                            />
                           </div>
                           <div className="flex flex-wrap gap-2">
                             <Button
@@ -1408,6 +1849,23 @@ export default function AuthorityEnglishOS() {
           </TabsContent>
 
           <TabsContent value="scenarios">
+            <div className="mb-5 flex items-center justify-between gap-3 rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
+              <div>
+                <h2 className="text-2xl font-semibold">
+                  {helperLanguage === "ru" ? "Сценарии" : "Scenarios"}
+                </h2>
+                <p className="mt-1 text-sm text-neutral-500">
+                  {helperLanguage === "ru"
+                    ? "Выбери конкретную ситуацию и начни тренировку."
+                    : "Choose a specific situation and start practice."}
+                </p>
+              </div>
+              <HelpButton
+                helpKey="scenarios"
+                lang={helperLanguage}
+                onOpen={setActiveHelp}
+              />
+            </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {scenarios.map((scenario) => (
                 <Card
@@ -1599,50 +2057,268 @@ export default function AuthorityEnglishOS() {
           </TabsContent>
 
           <TabsContent value="progress">
-            <Card className="border-neutral-800 bg-neutral-900 text-neutral-50">
-              <CardContent className="p-6">
-                <div className="mb-5 flex items-center gap-3">
-                  <BarChart3 className="h-5 w-5 text-orange-400" />
-                  <h2 className="text-2xl font-semibold">
-                    {helperLanguage === "ru"
-                      ? "Сохранённые попытки"
-                      : "Saved Attempts"}
-                  </h2>
-                </div>
-                {savedAttempts.length === 0 ? (
-                  <p className="text-neutral-400">
-                    {helperLanguage === "ru"
-                      ? "Пока нет попыток. Пройди первую тренировку."
-                      : "No attempts yet. Complete your first daily drill."}
-                  </p>
-                ) : (
-                  <div className="space-y-4">
-                    {savedAttempts.map((item) => (
-                      <div
-                        key={item.id}
-                        className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5"
+            <div className="space-y-6">
+              <Card className="border-neutral-800 bg-neutral-900 text-neutral-50">
+                <CardContent className="p-6">
+                  <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div className="flex items-center gap-3">
+                      <BarChart3 className="h-5 w-5 text-orange-400" />
+                      <h2 className="text-2xl font-semibold">
+                        {helperLanguage === "ru" ? "Прогресс" : "Progress"}
+                      </h2>
+                      <HelpButton
+                        helpKey="progress"
+                        lang={helperLanguage}
+                        onOpen={setActiveHelp}
+                      />
+                    </div>
+                    {savedAttempts.length > 0 && (
+                      <Button
+                        onClick={clearProgress}
+                        variant="outline"
+                        className="border-neutral-700 bg-transparent text-neutral-100 hover:bg-neutral-800"
                       >
-                        <div className="mb-2 flex items-center justify-between gap-3">
-                          <h3 className="font-semibold text-neutral-100">
-                            {item.scenario}
-                          </h3>
-                          <Badge className="bg-orange-500">
-                            {item.score}/100
-                          </Badge>
-                        </div>
-                        <p className="mb-2 text-sm text-neutral-500">
-                          {item.date}
-                        </p>
-                        <p className="text-neutral-300">{item.answer}</p>
-                      </div>
-                    ))}
+                        {helperLanguage === "ru"
+                          ? "Очистить прогресс"
+                          : "Clear progress"}
+                      </Button>
+                    )}
                   </div>
-                )}
-              </CardContent>
-            </Card>
+
+                  {savedAttempts.length === 0 ? (
+                    <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5">
+                      <p className="text-neutral-300">
+                        {helperLanguage === "ru"
+                          ? "Пока нет сохранённых попыток. Важно: попытка появляется здесь только после нажатия кнопки «Анализировать ответ» в тренировке. Просто запись голоса без анализа не сохраняется."
+                          : "No saved attempts yet. Important: an attempt appears here only after you click Analyze answer in the training tab. Voice recording alone is not saved."}
+                      </p>
+                      <Button
+                        onClick={() => setActiveTab("daily")}
+                        className="mt-5 bg-orange-500 text-white hover:bg-orange-600"
+                      >
+                        {helperLanguage === "ru"
+                          ? "Перейти к тренировке"
+                          : "Go to Daily Drill"}
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="grid gap-4 md:grid-cols-4">
+                        <Score
+                          label={
+                            helperLanguage === "ru" ? "Попыток" : "Attempts"
+                          }
+                          value={savedAttempts.length}
+                        />
+                        <Score
+                          label={
+                            helperLanguage === "ru" ? "Средний балл" : "Average"
+                          }
+                          value={Math.round(
+                            savedAttempts.reduce(
+                              (sum, item) => sum + item.score,
+                              0,
+                            ) / savedAttempts.length,
+                          )}
+                        />
+                        <Score
+                          label={
+                            helperLanguage === "ru" ? "Лучший балл" : "Best"
+                          }
+                          value={Math.max(
+                            ...savedAttempts.map((item) => item.score),
+                          )}
+                        />
+                        <Score
+                          label={
+                            helperLanguage === "ru" ? "Последний" : "Latest"
+                          }
+                          value={savedAttempts[0].score}
+                        />
+                      </div>
+
+                      <Card className="border-neutral-800 bg-neutral-950 text-neutral-50">
+                        <CardContent className="p-5">
+                          <h3 className="mb-4 text-xl font-semibold">
+                            {helperLanguage === "ru"
+                              ? "Последняя попытка"
+                              : "Latest attempt"}
+                          </h3>
+                          <div className="grid gap-3 md:grid-cols-4">
+                            <Score
+                              label="Total"
+                              value={savedAttempts[0].score}
+                            />
+                            <Score
+                              label="Vocabulary"
+                              value={
+                                savedAttempts[0].vocabularyScore ??
+                                savedAttempts[0].score
+                              }
+                            />
+                            <Score
+                              label="Authority"
+                              value={
+                                savedAttempts[0].authorityScore ??
+                                savedAttempts[0].score
+                              }
+                            />
+                            <Score
+                              label="Clarity"
+                              value={
+                                savedAttempts[0].clarityScore ??
+                                savedAttempts[0].score
+                              }
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="border-neutral-800 bg-neutral-900 text-neutral-50">
+                        <CardContent className="p-6">
+                          <h3 className="mb-5 text-2xl font-semibold">
+                            {helperLanguage === "ru"
+                              ? "Сохранённые попытки"
+                              : "Saved Attempts"}
+                          </h3>
+                          <div className="space-y-4">
+                            {savedAttempts.map((item) => (
+                              <div
+                                key={item.id}
+                                className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5"
+                              >
+                                <div className="mb-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                                  <div>
+                                    <Badge
+                                      variant="outline"
+                                      className="mb-2 border-orange-500/40 text-orange-300"
+                                    >
+                                      {item.scenarioType}
+                                    </Badge>
+                                    <h3 className="font-semibold text-neutral-100">
+                                      {helperLanguage === "ru"
+                                        ? item.scenarioRu || item.scenario
+                                        : item.scenario}
+                                    </h3>
+                                  </div>
+                                  <Badge className="bg-orange-500">
+                                    {item.score}/100
+                                  </Badge>
+                                </div>
+                                <p className="mb-2 text-sm text-neutral-500">
+                                  {item.date} · {item.time}
+                                </p>
+                                <p className="text-neutral-300">
+                                  {item.answer}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
+        <HelpModal
+          activeKey={activeHelp}
+          lang={helperLanguage}
+          onClose={() => setActiveHelp(null)}
+        />
       </div>
+    </div>
+  );
+}
+
+function HelpButton({
+  helpKey,
+  lang,
+  onOpen,
+  compact = false,
+}: {
+  helpKey: string;
+  lang: HelperLanguage;
+  onOpen: (key: string) => void;
+  compact?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={(event) => {
+        event.stopPropagation();
+        onOpen(helpKey);
+      }}
+      className={
+        compact
+          ? "inline-flex h-6 w-6 items-center justify-center rounded-full border border-neutral-700 text-orange-300 hover:border-orange-500 hover:bg-orange-500/10"
+          : "inline-flex items-center gap-2 rounded-xl border border-neutral-700 px-3 py-2 text-sm text-orange-300 hover:border-orange-500 hover:bg-orange-500/10"
+      }
+      aria-label={lang === "ru" ? "Открыть подсказку" : "Open help"}
+    >
+      <HelpCircle className="h-4 w-4" />
+      {!compact && <span>{lang === "ru" ? "Подсказка" : "Help"}</span>}
+    </button>
+  );
+}
+
+function HelpModal({
+  activeKey,
+  lang,
+  onClose,
+}: {
+  activeKey: string | null;
+  lang: HelperLanguage;
+  onClose: () => void;
+}) {
+  if (!activeKey) return null;
+  const copy = getHelpCopy(activeKey, lang);
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-sm">
+      <motion.div
+        initial={{ opacity: 0, y: 14, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        className="w-full max-w-xl rounded-3xl border border-neutral-800 bg-neutral-950 p-6 text-neutral-50 shadow-2xl"
+      >
+        <div className="mb-4 flex items-start justify-between gap-4">
+          <div>
+            <Badge className="mb-3 bg-orange-500 text-white">
+              {lang === "ru" ? "Обучение платформе" : "Platform guide"}
+            </Badge>
+            <h3 className="text-2xl font-semibold">{copy.title}</h3>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full border border-neutral-800 p-2 text-neutral-300 hover:bg-neutral-900"
+            aria-label={lang === "ru" ? "Закрыть" : "Close"}
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <p className="text-neutral-300">{copy.body}</p>
+        <div className="mt-5 space-y-3">
+          {copy.steps.map((step, index) => (
+            <div
+              key={step}
+              className="flex gap-3 rounded-2xl border border-neutral-800 bg-neutral-900 p-4"
+            >
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-orange-500 text-sm font-semibold text-white">
+                {index + 1}
+              </div>
+              <p className="text-sm text-neutral-200">{step}</p>
+            </div>
+          ))}
+        </div>
+        <Button
+          onClick={onClose}
+          className="mt-6 w-full bg-orange-500 text-white hover:bg-orange-600"
+        >
+          {lang === "ru" ? "Понятно" : "Got it"}
+        </Button>
+      </motion.div>
     </div>
   );
 }
