@@ -1073,7 +1073,14 @@ export default function LanguageGoalOS() {
   const avg = attempts.length ? Math.round(attempts.reduce((sum, item) => sum + item.total, 0) / attempts.length) : 0;
   const best = attempts.length ? Math.max(...attempts.map((item) => item.total)) : 0;
   const last = attempts[0]?.total || 0;
-  const completedSituations = Array.from(new Map(attempts.filter((item) => (Number(item.total) || 0) >= 70).map((item) => [item.scenarioId || item.scenarioTitle, item])).values());
+  const completedSituationMap = attempts.reduce<Record<string, (typeof attempts)[number]>>((acc, item) => {
+    const score = Number(item.total) || 0;
+    if (score < 70) return acc;
+    const key = item.scenarioId || item.scenarioTitle;
+    if (!acc[key]) acc[key] = item;
+    return acc;
+  }, {});
+  const completedSituations = Object.values(completedSituationMap);
   const completionLabel = ui === "ru" ? "Ситуаций уже можно пройти" : "Situations you can handle";
   const completedLabel = ui === "ru" ? "Засчитано как реальная ситуация" : "Counted as a real-life situation";
 
