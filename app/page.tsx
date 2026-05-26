@@ -366,6 +366,275 @@ const scenarios: Scenario[] = [
     authorityPrincipleRu:
       "Превращай техническую тему в стратегический рыночный инсайт.",
   },
+
+  {
+    id: 10,
+    type: "New Country",
+    level: "Zero",
+    title: "Ask someone to repeat slowly",
+    titleRu: "Попросить повторить медленнее",
+    founderLine: "Could you please repeat that?",
+    founderLineRu: "Вы можете, пожалуйста, повторить?",
+    beginnerAnswer: "Sorry, I do not understand. Can you speak slowly, please?",
+    beginnerAnswerRu: "Извините, я не понимаю. Можете говорить медленнее, пожалуйста?",
+    targetAnswer:
+      "Sorry, I do not understand yet. Could you please speak slowly or write it down for me?",
+    targetAnswerRu:
+      "Извините, я пока не понимаю. Вы можете говорить медленнее или написать это для меня?",
+    vocabulary: ["sorry", "understand", "speak slowly", "write it down", "please"],
+    vocabularyRu: ["извините", "понимать", "говорить медленно", "записать", "пожалуйста"],
+    authorityPrinciple: "Your first survival skill is not perfect English. It is control of the situation.",
+    authorityPrincipleRu: "Первый навык выживания — не идеальный английский, а контроль ситуации.",
+  },
+  {
+    id: 11,
+    type: "New Country",
+    level: "Zero",
+    title: "Make a doctor appointment",
+    titleRu: "Записаться к врачу",
+    founderLine: "How can I help you?",
+    founderLineRu: "Чем я могу вам помочь?",
+    beginnerAnswer: "I need to make an appointment with a doctor.",
+    beginnerAnswerRu: "Мне нужно записаться к врачу.",
+    targetAnswer:
+      "I need to make an appointment with a doctor. I have a fever and a headache.",
+    targetAnswerRu:
+      "Мне нужно записаться к врачу. У меня температура и головная боль.",
+    vocabulary: ["appointment", "doctor", "fever", "headache", "need"],
+    vocabularyRu: ["запись", "врач", "температура", "головная боль", "нужно"],
+    authorityPrinciple: "Use one clear need, then add the reason.",
+    authorityPrincipleRu: "Сначала назови одну ясную потребность, потом причину.",
+  },
+  {
+    id: 12,
+    type: "New Country",
+    level: "Beginner",
+    title: "Talk to a landlord",
+    titleRu: "Поговорить с арендодателем",
+    founderLine: "When can you move in?",
+    founderLineRu: "Когда вы можете заехать?",
+    beginnerAnswer: "I can move in next week.",
+    beginnerAnswerRu: "Я могу заехать на следующей неделе.",
+    targetAnswer:
+      "I can move in next week. Could you please send me the contract and the list of documents?",
+    targetAnswerRu:
+      "Я могу заехать на следующей неделе. Можете, пожалуйста, прислать договор и список документов?",
+    vocabulary: ["move in", "next week", "contract", "documents", "send"],
+    vocabularyRu: ["заехать", "на следующей неделе", "договор", "документы", "прислать"],
+    authorityPrinciple: "In official situations, always ask for the next document or next step.",
+    authorityPrincipleRu: "В официальных ситуациях всегда уточняй следующий документ или следующий шаг.",
+  },
+  {
+    id: 13,
+    type: "Job Interview",
+    level: "Beginner",
+    title: "Answer: Tell me about yourself",
+    titleRu: "Ответить: расскажите о себе",
+    founderLine: "Tell me about yourself.",
+    founderLineRu: "Расскажите о себе.",
+    beginnerAnswer: "I have experience in product and client work.",
+    beginnerAnswerRu: "У меня есть опыт в продуктовой работе и работе с клиентами.",
+    targetAnswer:
+      "I have experience in product work, client communication, and solving practical business problems. I like turning unclear tasks into clear steps.",
+    targetAnswerRu:
+      "У меня есть опыт в продуктовой работе, коммуникации с клиентами и решении практических бизнес-задач. Мне нравится превращать неясные задачи в понятные шаги.",
+    vocabulary: ["experience", "client communication", "business problems", "clear steps", "practical"],
+    vocabularyRu: ["опыт", "коммуникация с клиентами", "бизнес-задачи", "понятные шаги", "практический"],
+    authorityPrinciple: "A good self-introduction connects experience, value, and behavior.",
+    authorityPrincipleRu: "Хорошая самопрезентация связывает опыт, ценность и поведение.",
+  },
+  {
+    id: 14,
+    type: "Job Interview",
+    level: "Beginner",
+    title: "Ask about the next step",
+    titleRu: "Спросить о следующем шаге",
+    founderLine: "Do you have any questions for us?",
+    founderLineRu: "У вас есть вопросы к нам?",
+    beginnerAnswer: "What is the next step in the process?",
+    beginnerAnswerRu: "Какой следующий шаг в процессе?",
+    targetAnswer:
+      "Yes, thank you. What is the next step in the process, and when should I expect feedback?",
+    targetAnswerRu:
+      "Да, спасибо. Какой следующий шаг в процессе и когда мне ожидать обратную связь?",
+    vocabulary: ["next step", "process", "expect", "feedback", "thank you"],
+    vocabularyRu: ["следующий шаг", "процесс", "ожидать", "обратная связь", "спасибо"],
+    authorityPrinciple: "End the conversation with clarity, not uncertainty.",
+    authorityPrincipleRu: "Завершай разговор ясностью, а не неопределённостью.",
+  },
+  {
+    id: 15,
+    type: "Work Calls",
+    level: "Beginner",
+    title: "Start a client call",
+    titleRu: "Начать звонок с клиентом",
+    founderLine: "Can you hear me well?",
+    founderLineRu: "Вы меня хорошо слышите?",
+    beginnerAnswer: "Yes, I can hear you well.",
+    beginnerAnswerRu: "Да, я хорошо вас слышу.",
+    targetAnswer:
+      "Yes, I can hear you well. Before we start, I would like to confirm the goal of this call.",
+    targetAnswerRu:
+      "Да, я хорошо вас слышу. Перед началом я хотела бы подтвердить цель этого звонка.",
+    vocabulary: ["hear", "before we start", "confirm", "goal", "call"],
+    vocabularyRu: ["слышать", "перед началом", "подтвердить", "цель", "звонок"],
+    authorityPrinciple: "The first minute should create structure.",
+    authorityPrincipleRu: "Первая минута должна создавать структуру.",
+  },
+  {
+    id: 16,
+    type: "Work Calls",
+    level: "Beginner",
+    title: "Write a short follow-up",
+    titleRu: "Написать короткий follow-up",
+    founderLine: "Can you send me a summary?",
+    founderLineRu: "Можете прислать краткое резюме?",
+    beginnerAnswer: "Yes, I will send you a short summary.",
+    beginnerAnswerRu: "Да, я пришлю вам краткое резюме.",
+    targetAnswer:
+      "Yes, I will send you a short summary with the key points, decisions, and next steps.",
+    targetAnswerRu:
+      "Да, я пришлю краткое резюме с ключевыми пунктами, решениями и следующими шагами.",
+    vocabulary: ["summary", "key points", "decisions", "next steps", "send"],
+    vocabularyRu: ["резюме", "ключевые пункты", "решения", "следующие шаги", "отправить"],
+    authorityPrinciple: "A good follow-up protects decisions from being lost.",
+    authorityPrincipleRu: "Хороший follow-up защищает решения от потери.",
+  },
+  {
+    id: 17,
+    type: "Parent & Child",
+    level: "Zero",
+    title: "Ask the teacher about progress",
+    titleRu: "Спросить учителя о прогрессе ребёнка",
+    founderLine: "How can I help you?",
+    founderLineRu: "Чем я могу вам помочь?",
+    beginnerAnswer: "I would like to ask about my child’s progress.",
+    beginnerAnswerRu: "Я хотела бы спросить о прогрессе моего ребёнка.",
+    targetAnswer:
+      "I would like to ask about my child’s progress. What should we practice at home this week?",
+    targetAnswerRu:
+      "Я хотела бы спросить о прогрессе моего ребёнка. Что нам нужно повторить дома на этой неделе?",
+    vocabulary: ["child", "progress", "practice", "at home", "this week"],
+    vocabularyRu: ["ребёнок", "прогресс", "практиковать", "дома", "на этой неделе"],
+    authorityPrinciple: "Parents need one clear next action, not vague feedback.",
+    authorityPrincipleRu: "Родителям нужен один понятный следующий шаг, а не размытый фидбек.",
+  },
+  {
+    id: 18,
+    type: "Parent & Child",
+    level: "Beginner",
+    title: "Help a child speak without pressure",
+    titleRu: "Помочь ребёнку говорить без давления",
+    founderLine: "I don’t know how to say it.",
+    founderLineRu: "Я не знаю, как это сказать.",
+    beginnerAnswer: "It is okay. Let’s say it together.",
+    beginnerAnswerRu: "Всё хорошо. Давай скажем это вместе.",
+    targetAnswer:
+      "It is okay. Let’s say it together slowly, and then you can try one more time.",
+    targetAnswerRu:
+      "Всё хорошо. Давай скажем это вместе медленно, а потом ты попробуешь ещё раз.",
+    vocabulary: ["it is okay", "together", "slowly", "try", "one more time"],
+    vocabularyRu: ["всё хорошо", "вместе", "медленно", "попробовать", "ещё раз"],
+    authorityPrinciple: "Support should reduce pressure and create repetition.",
+    authorityPrincipleRu: "Поддержка должна снижать давление и создавать повторение.",
+  },
+  {
+    id: 19,
+    type: "Real Conversation",
+    level: "Zero",
+    title: "Win time when you freeze",
+    titleRu: "Выиграть время, когда зависаешь",
+    founderLine: "What do you think?",
+    founderLineRu: "Что вы думаете?",
+    beginnerAnswer: "I need a moment, please.",
+    beginnerAnswerRu: "Мне нужна минутка, пожалуйста.",
+    targetAnswer:
+      "I need a moment, please. I understand the question, but I need a little time to answer.",
+    targetAnswerRu:
+      "Мне нужна минутка, пожалуйста. Я понимаю вопрос, но мне нужно немного времени, чтобы ответить.",
+    vocabulary: ["moment", "understand", "question", "little time", "answer"],
+    vocabularyRu: ["момент", "понимать", "вопрос", "немного времени", "ответить"],
+    authorityPrinciple: "Freezing is normal. The skill is to keep the conversation open.",
+    authorityPrincipleRu: "Зависать нормально. Навык — удержать разговор открытым.",
+  },
+  {
+    id: 20,
+    type: "Real Conversation",
+    level: "Beginner",
+    title: "Keep small talk going",
+    titleRu: "Поддержать простой разговор",
+    founderLine: "How was your weekend?",
+    founderLineRu: "Как прошли ваши выходные?",
+    beginnerAnswer: "It was good, thank you. How was yours?",
+    beginnerAnswerRu: "Хорошо, спасибо. А ваши?",
+    targetAnswer:
+      "It was good, thank you. I spent time with my family and had some rest. How was yours?",
+    targetAnswerRu:
+      "Хорошо, спасибо. Я провела время с семьёй и немного отдохнула. А ваши?",
+    vocabulary: ["weekend", "spent time", "family", "rest", "how was yours"],
+    vocabularyRu: ["выходные", "провела время", "семья", "отдых", "а ваши?"],
+    authorityPrinciple: "Small talk needs one simple answer and one return question.",
+    authorityPrincipleRu: "Small talk держится на одном простом ответе и встречном вопросе.",
+  },
+];
+
+
+const goalTracks = [
+  {
+    id: "authority",
+    label: "Professional Authority",
+    labelRu: "Профессиональная позиция",
+    shortRu: "переговоры, клиенты, цена, выступления",
+    description:
+      "Train English for founder calls, pricing, objections, product architecture, and conference speaking.",
+    descriptionRu:
+      "Английский для founder calls, цены, возражений, продуктовой архитектуры и выступлений.",
+    scenarioIds: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+  },
+  {
+    id: "new-country",
+    label: "New Country Survival",
+    labelRu: "Новая страна",
+    shortRu: "аренда, банк, врач, документы, школа, соседи",
+    description:
+      "Handle first practical conversations after moving: doctor, landlord, documents, school, neighbours.",
+    descriptionRu:
+      "Первые практические разговоры после переезда: врач, аренда, документы, школа, соседи.",
+    scenarioIds: [10, 11, 12],
+  },
+  {
+    id: "job-interview",
+    label: "Job & Interview",
+    labelRu: "Работа и интервью",
+    shortRu: "собеседования, письма, созвоны, самопрезентация",
+    description:
+      "Prepare for interviews, work calls, follow-ups, and confident self-presentation.",
+    descriptionRu:
+      "Подготовка к интервью, рабочим созвонам, письмам и уверенной самопрезентации.",
+    scenarioIds: [13, 14, 15, 16],
+  },
+  {
+    id: "parent-child",
+    label: "Parent & Child Support",
+    labelRu: "Родитель и ребёнок",
+    shortRu: "прогресс ребёнка, школа, поддержка без хаоса",
+    description:
+      "Help parents see progress, support practice, and speak with teachers calmly.",
+    descriptionRu:
+      "Помогает родителям видеть прогресс, поддерживать ребёнка и говорить с учителями спокойно.",
+    scenarioIds: [17, 18],
+  },
+  {
+    id: "conversation",
+    label: "Real Conversation Confidence",
+    labelRu: "Живой разговор",
+    shortRu: "для тех, кто знает слова, но теряется в разговоре",
+    description:
+      "Build simple reactions for real conversations, small talk, pauses, and unclear moments.",
+    descriptionRu:
+      "Простые реакции для живого разговора, small talk, пауз и ситуаций, когда человек теряется.",
+    scenarioIds: [19, 20],
+  },
 ];
 
 const phraseBank = [
@@ -591,6 +860,17 @@ function getBeginnerReading(id: number) {
     7: "Нот ол фичерз шуд би ин зэ фёрст вёржн.",
     8: "Зэ некст степ из э пэйд архитектчэр сэшн.",
     9: "Бикоз зэ проблем из офэн нот зэ тул. Ит из зэ дисижн стракчэр.",
+    10: "Сорри, ай ду нот андэрстэнд. Кэн ю спик слоули, плиз?",
+    11: "Ай ниид ту мэйк эн эпойнтмэнт уиз э доктор.",
+    12: "Ай кэн мув ин некст уик.",
+    13: "Ай хэв икспириэнс ин продакт энд клайэнт ворк.",
+    14: "Уот из зэ некст степ ин зэ просэс?",
+    15: "Йес, ай кэн хиэр ю уэл.",
+    16: "Йес, ай уил сэнд ю э шорт саммэри.",
+    17: "Ай вуд лайк ту аск эбаут май чайлдз прогрэс.",
+    18: "Ит из оукей. Летс сэй ит тугэзэр.",
+    19: "Ай ниид э моумэнт, плиз.",
+    20: "Ит уоз гуд, сэнк ю. Хау уоз йорз?",
   };
   return readings[id] || "";
 }
@@ -606,6 +886,17 @@ function getTargetReading(id: number) {
     7: "Нот ол фичерз шуд би ин зэ фёрст вёржн. Зэ эм-ви-пи шуд прув зэ кор продакт лоджик бифор уи экспэнд зэ систем.",
     8: "Зэ бэст некст степ из э пэйд архитектчэр сэшн. Афтэр зэт, ай кэн дифайн зэ продакт баундэриз, рискс, энд имплементэйшн скоуп.",
     9: "Ноу-код мэйкс дивелопмэнт фастэр, бат ит даз нот римув зэ кост ов уик дисижнз. Мэни продактс фэйл нот бикоз ов зэ тул, бат бикоз зэ дэйта стракчэр, юзер роулз, энд продакт баундэриз вёр анклир фром зэ бигининг.",
+    10: "Сорри, ай ду нот андэрстэнд йет. Куд ю плиз спик слоули ор райт ит даун фор ми?",
+    11: "Ай ниид ту мэйк эн эпойнтмэнт уиз э доктор. Ай хэв э фивэр энд э хэдэйк.",
+    12: "Ай кэн мув ин некст уик. Куд ю плиз сэнд ми зэ контракт энд зэ лист ов докьюмэнтс?",
+    13: "Ай хэв икспириэнс ин продакт ворк, клайэнт комьюникэйшн, энд солвинг прэктикал бизнес проблемз.",
+    14: "Йес, сэнк ю. Уот из зэ некст степ ин зэ просэс, энд уэн шуд ай икспект фидбэк?",
+    15: "Йес, ай кэн хиэр ю уэл. Бифор уи старт, ай вуд лайк ту конфёрм зэ гоул ов зис кол.",
+    16: "Йес, ай уил сэнд ю э шорт саммэри уиз зэ ки пойнтс, дисижнз, энд некст степс.",
+    17: "Ай вуд лайк ту аск эбаут май чайлдз прогрэс. Уот шуд уи прэктис эт хоум зис уик?",
+    18: "Ит из оукей. Летс сэй ит тугэзэр слоули, энд зэн ю кэн трай уан мор тайм.",
+    19: "Ай ниид э моумэнт, плиз. Ай андэрстэнд зэ квесчэн, бат ай ниид э литл тайм ту ансэр.",
+    20: "Ит уоз гуд, сэнк ю. Ай спент тайм уиз май фэмили энд хэд сам рэст. Хау уоз йорз?",
   };
   return readings[id] || "";
 }
@@ -952,6 +1243,7 @@ export default function AuthorityEnglishOS() {
   const [recordingStatus, setRecordingStatus] = useState("Ready to record");
   const [manualMode, setManualMode] = useState(false);
   const [helperLanguage, setHelperLanguage] = useState<HelperLanguage>("ru");
+  const [activeGoal, setActiveGoal] = useState("authority");
   const [activeTab, setActiveTab] = useState("start");
   const [activeHelp, setActiveHelp] = useState<string | null>(null);
   const [aiVoiceStatus, setAiVoiceStatus] = useState("");
@@ -964,6 +1256,11 @@ export default function AuthorityEnglishOS() {
   const currentScore = useMemo(
     () => scoreAttempt(attempt, activeScenario.targetAnswer),
     [attempt, activeScenario],
+  );
+
+  const currentGoal = goalTracks.find((goal) => goal.id === activeGoal) || goalTracks[0];
+  const currentGoalScenarios = scenarios.filter((scenario) =>
+    currentGoal.scenarioIds.includes(scenario.id),
   );
 
   const filteredPhrases = phraseBank.filter((item) =>
@@ -1005,6 +1302,22 @@ export default function AuthorityEnglishOS() {
       // Keep progress in memory if localStorage is unavailable.
     }
   }, [savedAttempts]);
+
+  const selectGoal = (goalId: string) => {
+    const goal = goalTracks.find((item) => item.id === goalId) || goalTracks[0];
+    setActiveGoal(goal.id);
+    const firstScenario = scenarios.find((scenario) => goal.scenarioIds.includes(scenario.id));
+    if (firstScenario) {
+      setActiveScenario(firstScenario);
+      setAttempt("");
+      setShowFeedback(false);
+    }
+  };
+
+  const startGoalPractice = (goalId: string) => {
+    selectGoal(goalId);
+    setActiveTab("daily");
+  };
 
   const saveAttempt = () => {
     if (!attempt.trim()) return;
@@ -1161,10 +1474,9 @@ export default function AuthorityEnglishOS() {
   };
 
   const nextScenario = () => {
-    const currentIndex = scenarios.findIndex(
-      (item) => item.id === activeScenario.id,
-    );
-    const next = scenarios[(currentIndex + 1) % scenarios.length];
+    const list = currentGoalScenarios.length ? currentGoalScenarios : scenarios;
+    const currentIndex = list.findIndex((item) => item.id === activeScenario.id);
+    const next = list[(currentIndex + 1) % list.length];
     setActiveScenario(next);
     setAttempt("");
     setShowFeedback(false);
@@ -1234,8 +1546,8 @@ export default function AuthorityEnglishOS() {
               </div>
               <p className="text-neutral-300">
                 {helperLanguage === "ru"
-                  ? "Вести переговоры на английском, продавать architecture reviews, проводить founder calls и выступить с 20–30 минутным докладом."
-                  : "Negotiate in English, sell architecture reviews, lead founder calls, and deliver a 20–30 minute international conference talk."}
+                  ? currentGoal.descriptionRu
+                  : currentGoal.description}
               </p>
               <div className="mt-5 space-y-3">
                 <ProgressLine
@@ -1294,6 +1606,64 @@ export default function AuthorityEnglishOS() {
           </TabsList>
 
           <TabsContent value="start">
+            <Card className="mb-6 border-neutral-800 bg-neutral-900 text-neutral-50">
+              <CardContent className="p-6">
+                <div className="mb-5 flex items-start justify-between gap-3">
+                  <div>
+                    <Badge className="mb-3 bg-orange-500 text-white">
+                      {helperLanguage === "ru" ? "Маршрут под цель" : "Goal-based route"}
+                    </Badge>
+                    <h2 className="text-2xl font-semibold">
+                      {helperLanguage === "ru"
+                        ? "Для какой цели вам нужен язык?"
+                        : "What do you need the language for?"}
+                    </h2>
+                    <p className="mt-2 max-w-3xl text-neutral-400">
+                      {helperLanguage === "ru"
+                        ? "Выберите цель, и платформа покажет сценарии, фразы и тренировку под эту реальную задачу. Английский остаётся учебным материалом, интерфейс помогает не теряться."
+                        : "Choose a goal and the platform will show scenarios, phrases, and practice around that real task."}
+                    </p>
+                  </div>
+                  <HelpButton helpKey="platform" lang={helperLanguage} onOpen={setActiveHelp} />
+                </div>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {goalTracks.map((goal) => (
+                    <button
+                      key={goal.id}
+                      type="button"
+                      onClick={() => selectGoal(goal.id)}
+                      className={`rounded-2xl border p-5 text-left transition hover:border-orange-500/70 ${
+                        activeGoal === goal.id
+                          ? "border-orange-500 bg-orange-500/10"
+                          : "border-neutral-800 bg-neutral-950"
+                      }`}
+                    >
+                      <div className="mb-2 text-lg font-semibold text-neutral-100">
+                        {helperLanguage === "ru" ? goal.labelRu : goal.label}
+                      </div>
+                      <p className="mb-3 text-sm text-neutral-400">
+                        {helperLanguage === "ru" ? goal.shortRu : goal.description}
+                      </p>
+                      <div className="text-sm text-orange-300">
+                        {helperLanguage === "ru" ? "Сценариев" : "Scenarios"}: {goal.scenarioIds.length}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-5 flex flex-wrap items-center gap-3 rounded-2xl border border-neutral-800 bg-neutral-950 p-4">
+                  <div className="flex-1 text-sm text-neutral-300">
+                    {helperLanguage === "ru" ? "Выбран маршрут:" : "Selected route:"}{" "}
+                    <span className="font-semibold text-neutral-100">
+                      {helperLanguage === "ru" ? currentGoal.labelRu : currentGoal.label}
+                    </span>
+                  </div>
+                  <Button onClick={() => startGoalPractice(activeGoal)}>
+                    <Play className="mr-2 h-4 w-4" />
+                    {helperLanguage === "ru" ? "Начать тренировку маршрута" : "Start this route"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
             <div className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
               <Card className="border-neutral-800 bg-neutral-900 text-neutral-50">
                 <CardContent className="p-6">
@@ -1856,8 +2226,8 @@ export default function AuthorityEnglishOS() {
                 </h2>
                 <p className="mt-1 text-sm text-neutral-500">
                   {helperLanguage === "ru"
-                    ? "Выбери конкретную ситуацию и начни тренировку."
-                    : "Choose a specific situation and start practice."}
+                    ? `Маршрут: ${currentGoal.labelRu}. Выбери конкретную ситуацию и начни тренировку.`
+                    : `Route: ${currentGoal.label}. Choose a specific situation and start practice.`}
                 </p>
               </div>
               <HelpButton
@@ -1867,7 +2237,7 @@ export default function AuthorityEnglishOS() {
               />
             </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {scenarios.map((scenario) => (
+              {currentGoalScenarios.map((scenario) => (
                 <Card
                   key={scenario.id}
                   className="border-neutral-800 bg-neutral-900 text-neutral-50"
