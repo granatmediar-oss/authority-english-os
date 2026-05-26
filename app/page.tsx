@@ -52,6 +52,40 @@ type Scenario = {
   emergency?: boolean;
 };
 
+type GeneratedRouteDay = {
+  day: number;
+  focus: string;
+  focusRu: string;
+  scenarioTitle: string;
+  scenarioTitleRu: string;
+  situation: string;
+  situationRu: string;
+  beginnerPhrase: string;
+  beginnerTranslationRu: string;
+  pronunciationRu: string;
+  strongerPhrase: string;
+  strongerTranslationRu: string;
+  emergencyPhrases: string[];
+  dailyPhrases: string[];
+  dialogue: { role: "user" | "other"; text: string; translationRu: string }[];
+  successCriteria: string;
+  successCriteriaRu: string;
+};
+
+type GeneratedRoute = {
+  routeTitle: string;
+  routeTitleRu: string;
+  summary: string;
+  summaryRu: string;
+  days: GeneratedRouteDay[];
+};
+
+type GeneratedRouteResponse = {
+  source: "openai" | "fallback";
+  warning?: string;
+  route: GeneratedRoute;
+};
+
 const uiText = {
   ru: {
     productBadge: "Goal-Based Language OS",
@@ -108,6 +142,21 @@ const uiText = {
     translation: "Перевод смысла",
     routeStructure: "Структура 30-дневного маршрута",
     aiLater: "AI-слой позже будет генерировать сценарии, озвучку и фидбек под выбранный язык и уровень.",
+    aiGenerator: "AI-генератор маршрута",
+    generateRoute: "Сгенерировать 30-дневный AI-маршрут",
+    generatingRoute: "Генерирую маршрут...",
+    generatedRoute: "AI-маршрут готов",
+    routeSourceFallback: "Пока используется демо-маршрут без OpenAI. Добавьте OPENAI_API_KEY, чтобы включить настоящую генерацию.",
+    routeSourceOpenAI: "Маршрут сгенерирован через OpenAI.",
+    routeError: "Не получилось сгенерировать маршрут. Показан безопасный демо-маршрут.",
+    day: "День",
+    dailyPhrases: "3 фразы дня",
+    emergencyPhrases: "Экстренные фразы",
+    dialogue: "Мини-диалог",
+    successCriteria: "Критерий успеха",
+    startDay: "Тренировать этот день",
+    mainFearLabel: "Что больше всего мешает говорить?",
+    mainFearPlaceholder: "Например: боюсь не понять врача, зависаю на интервью, стыдно ошибиться",
     syncOn: "Прогресс сохраняется в Supabase",
     syncOff: "Сейчас прогресс хранится только в этом браузере",
     syncSaving: "Сохраняю...",
@@ -169,6 +218,21 @@ const uiText = {
     translation: "Meaning translation",
     routeStructure: "30-day route structure",
     aiLater: "Later, the AI layer will generate scenarios, voice, and feedback for the selected language and level.",
+    aiGenerator: "AI route generator",
+    generateRoute: "Generate 30-day AI route",
+    generatingRoute: "Generating route...",
+    generatedRoute: "AI route is ready",
+    routeSourceFallback: "A demo route is being used without OpenAI. Add OPENAI_API_KEY to enable real generation.",
+    routeSourceOpenAI: "Route generated with OpenAI.",
+    routeError: "Route generation failed. A safe demo route is shown.",
+    day: "Day",
+    dailyPhrases: "3 daily phrases",
+    emergencyPhrases: "Emergency phrases",
+    dialogue: "Mini dialogue",
+    successCriteria: "Success criteria",
+    startDay: "Practice this day",
+    mainFearLabel: "What blocks you most when speaking?",
+    mainFearPlaceholder: "For example: I freeze in interviews, I fear doctor calls, I am afraid of mistakes",
     syncOn: "Progress is saved in Supabase",
     syncOff: "Progress is stored only in this browser now",
     syncSaving: "Saving...",
@@ -558,6 +622,11 @@ export default function LanguageGoalOS() {
   const [showFeedback, setShowFeedback] = useState(false);
   const [helpOpens, setHelpOpens] = useState(0);
   const [attempts, setAttempts] = useLocalStorage<any[]>("lgos_attempts", []);
+  const [generatedRoute, setGeneratedRoute] = useLocalStorage<GeneratedRoute | null>("lgos_generated_route", null);
+  const [generatedRouteSource, setGeneratedRouteSource] = useLocalStorage<"openai" | "fallback" | "">("lgos_generated_route_source", "");
+  const [mainFear, setMainFear] = useLocalStorage<string>("lgos_main_fear", "");
+  const [isGeneratingRoute, setIsGeneratingRoute] = useState(false);
+  const [routeGenerationError, setRouteGenerationError] = useState("");
   const [clientKey, setClientKey] = useLocalStorage<string>("lgos_client_key", "");
   const [syncStatus, setSyncStatus] = useState("");
   const [isRecording, setIsRecording] = useState(false);
@@ -569,7 +638,11 @@ export default function LanguageGoalOS() {
   const t = uiText[ui];
   const selectedGoal = goals.find((g) => g.id === goal)!;
   const selectedLang = targetLanguages.find((l) => l.id === targetLang)!;
-  const routeScenarios = useMemo(() => scenarios.filter((s) => s.goal === goal && s.level.includes(level)), [goal, level]);
+  const generatedScenarios = useMemo(() => routeToScenarios(generatedRoute, goal, level), [generatedRoute, goal, level]);
+  const routeScenarios = useMemo(() => {
+    const base = scenarios.filter((s) => s.goal === goal && s.level.includes(level));
+    return generatedScenarios.length > 0 ? generatedScenarios : base;
+  }, [goal, level, generatedScenarios]);
   const [activeScenarioId, setActiveScenarioId] = useState(routeScenarios[0]?.id || scenarios[0].id);
 
   useEffect(() => {
@@ -667,7 +740,7 @@ export default function LanguageGoalOS() {
     return () => clearTimeout(timer);
   }, [supabaseClient, clientKey, ui, targetLang, goal, level]);
 
-  const activeScenario = scenarios.find((s) => s.id === activeScenarioId) || routeScenarios[0] || scenarios[0];
+  const activeScenario = routeScenarios.find((s) => s.id === activeScenarioId) || scenarios.find((s) => s.id === activeScenarioId) || routeScenarios[0] || scenarios[0];
   const score = useMemo(() => scoreAttempt(attempt, activeScenario, level, helpOpens), [attempt, activeScenario, level, helpOpens]);
 
   const saveAttempt = async () => {
@@ -715,6 +788,33 @@ export default function LanguageGoalOS() {
       setSyncStatus(t.syncSaving);
       const { error } = await db.from("learning_attempts").delete().eq("client_key", clientKey);
       setSyncStatus(error ? t.syncError : t.syncSaved);
+    }
+  };
+
+  const generateAiRoute = async () => {
+    setIsGeneratingRoute(true);
+    setRouteGenerationError("");
+    try {
+      const response = await fetch("/api/generate-route", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ interfaceLanguage: ui, targetLanguage: targetLang, goal, level, mainFear, timeFrame: "30 days" }),
+      });
+      const data = (await response.json()) as GeneratedRouteResponse;
+      if (!data?.route?.days?.length) throw new Error("Route is empty");
+      setGeneratedRoute(data.route);
+      setGeneratedRouteSource(data.source);
+      const first = routeToScenarios(data.route, goal, level)[0];
+      if (first) {
+        setActiveScenarioId(first.id);
+        setAttempt("");
+        setShowFeedback(false);
+      }
+      if (data.warning) setRouteGenerationError(t.routeError);
+    } catch (error: any) {
+      setRouteGenerationError(error?.message || t.routeError);
+    } finally {
+      setIsGeneratingRoute(false);
     }
   };
 
@@ -883,9 +983,30 @@ export default function LanguageGoalOS() {
                     ))}
                   </div>
 
+                  <div className="mb-6 rounded-2xl border border-neutral-800 bg-neutral-950 p-5">
+                    <div className="mb-3 flex items-center gap-2 text-orange-300"><Brain className="h-5 w-5" /> <span className="font-semibold">{t.aiGenerator}</span></div>
+                    <label className="mb-2 block text-sm text-neutral-300">{t.mainFearLabel}</label>
+                    <Textarea
+                      value={mainFear}
+                      onChange={(e) => setMainFear(e.target.value)}
+                      placeholder={t.mainFearPlaceholder}
+                      className="mb-4 min-h-24 border-neutral-700 bg-neutral-950 text-neutral-50 placeholder:text-neutral-600"
+                    />
+                    <div className="flex flex-wrap gap-3">
+                      <Button onClick={generateAiRoute} disabled={isGeneratingRoute} className="bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-50">
+                        <Brain className="mr-2 h-4 w-4" />{isGeneratingRoute ? t.generatingRoute : t.generateRoute}
+                      </Button>
+                      {generatedRoute && <Badge className="bg-neutral-800 text-neutral-200 hover:bg-neutral-800">{t.generatedRoute}</Badge>}
+                    </div>
+                    {generatedRouteSource && (
+                      <p className="mt-3 text-sm text-neutral-400">{generatedRouteSource === "openai" ? t.routeSourceOpenAI : t.routeSourceFallback}</p>
+                    )}
+                    {routeGenerationError && <p className="mt-3 text-sm text-orange-300">{routeGenerationError}</p>}
+                  </div>
+
                   <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5">
                     <div className="mb-3 text-neutral-300">{t.selected}: <b>{selectedLang.flag} {ui === "ru" ? selectedLang.ru : selectedLang.en}</b> · <b>{ui === "ru" ? selectedGoal.ru : selectedGoal.en}</b> · <b>{levels.find((l) => l.id === level)?.[ui === "ru" ? "ru" : "en"]}</b></div>
-                    {targetLang !== "en" && (
+                    {!generatedRoute && targetLang !== "en" && (
                       <div className="mb-4 rounded-xl border border-orange-500/30 bg-orange-500/10 p-4 text-sm text-orange-100">{t.aiLater}</div>
                     )}
                     <Button onClick={startRoute} className="w-full bg-orange-500 text-white hover:bg-orange-600 md:w-auto"><Play className="mr-2 h-4 w-4" />{t.startRoute}</Button>
@@ -1007,8 +1128,13 @@ export default function LanguageGoalOS() {
           <TabsContent value="path">
             <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
               <Card className="border-neutral-800 bg-neutral-900 text-neutral-50"><CardContent className="p-6">
-                <h2 className="mb-5 text-2xl font-semibold">{t.routeStructure}</h2>
-                <div className="space-y-4">{routeDays.map((d) => <div key={d.day} className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5"><Badge variant="outline" className="mb-3 border-orange-500/40 text-orange-300">Day {d.day}</Badge><p className="text-neutral-100">{ui === "ru" ? d.ru : d.en}</p></div>)}</div>
+                <h2 className="mb-2 text-2xl font-semibold">{generatedRoute ? (ui === "ru" ? generatedRoute.routeTitleRu : generatedRoute.routeTitle) : t.routeStructure}</h2>
+                {generatedRoute && <p className="mb-5 text-neutral-400">{ui === "ru" ? generatedRoute.summaryRu : generatedRoute.summary}</p>}
+                <div className="space-y-4">
+                  {generatedRoute ? generatedRoute.days.map((d) => (
+                    <GeneratedDayCard key={d.day} day={d} ui={ui} t={t} onPractice={() => startScenario(routeToScenarios(generatedRoute, goal, level).find((s) => s.id === `ai-day-${d.day}`) || routeToScenarios(generatedRoute, goal, level)[0])} />
+                  )) : routeDays.map((d) => <div key={d.day} className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5"><Badge variant="outline" className="mb-3 border-orange-500/40 text-orange-300">Day {d.day}</Badge><p className="text-neutral-100">{ui === "ru" ? d.ru : d.en}</p></div>)}
+                </div>
               </CardContent></Card>
               <Card className="border-neutral-800 bg-neutral-900 text-neutral-50"><CardContent className="p-6">
                 <h2 className="mb-5 text-2xl font-semibold">{ui === "ru" ? "Как система адаптируется" : "How the system adapts"}</h2>
@@ -1030,6 +1156,65 @@ export default function LanguageGoalOS() {
             </CardContent></Card>
           </TabsContent>
         </Tabs>
+      </div>
+    </div>
+  );
+}
+
+function routeToScenarios(route: GeneratedRoute | null, goal: GoalId, level: LevelId): Scenario[] {
+  if (!route?.days?.length) return [];
+  return route.days.map((day) => ({
+    id: `ai-day-${day.day}`,
+    goal,
+    level: [level],
+    typeEn: `AI Route · Day ${day.day}`,
+    typeRu: `AI-маршрут · День ${day.day}`,
+    titleEn: day.scenarioTitle,
+    titleRu: day.scenarioTitleRu,
+    situationEn: day.situation,
+    situationRu: day.situationRu,
+    beginner: day.beginnerPhrase,
+    beginnerRu: day.beginnerTranslationRu,
+    readRu: day.pronunciationRu,
+    stronger: day.strongerPhrase,
+    strongerRu: day.strongerTranslationRu,
+    strongerReadRu: day.pronunciationRu,
+    keywords: [...day.dailyPhrases, ...day.emergencyPhrases]
+      .join(" ")
+      .toLowerCase()
+      .split(/\W+/)
+      .filter(Boolean)
+      .slice(0, 8),
+    principleEn: day.successCriteria,
+    principleRu: day.successCriteriaRu,
+    emergency: day.day <= 7,
+  }));
+}
+
+function GeneratedDayCard({ day, ui, t, onPractice }: { day: GeneratedRouteDay; ui: UI; t: any; onPractice: () => void }) {
+  return (
+    <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <Badge variant="outline" className="border-orange-500/40 text-orange-300">{t.day} {day.day}</Badge>
+        <Button size="sm" onClick={onPractice} className="bg-orange-500 text-white hover:bg-orange-600">
+          <Play className="mr-2 h-4 w-4" />{t.startDay}
+        </Button>
+      </div>
+      <h3 className="mb-2 text-lg font-semibold text-neutral-100">{ui === "ru" ? day.scenarioTitleRu : day.scenarioTitle}</h3>
+      <p className="mb-4 text-neutral-400">{ui === "ru" ? day.focusRu : day.focus}</p>
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
+          <div className="mb-2 text-sm text-orange-300">{t.dailyPhrases}</div>
+          <ul className="space-y-1 text-sm text-neutral-200">{day.dailyPhrases.map((phrase) => <li key={phrase}>• {phrase}</li>)}</ul>
+        </div>
+        <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
+          <div className="mb-2 text-sm text-orange-300">{t.emergencyPhrases}</div>
+          <ul className="space-y-1 text-sm text-neutral-200">{day.emergencyPhrases.map((phrase) => <li key={phrase}>• {phrase}</li>)}</ul>
+        </div>
+      </div>
+      <div className="mt-3 rounded-xl border border-neutral-800 bg-neutral-900 p-4">
+        <div className="mb-2 text-sm text-orange-300">{t.successCriteria}</div>
+        <p className="text-sm text-neutral-300">{ui === "ru" ? day.successCriteriaRu : day.successCriteria}</p>
       </div>
     </div>
   );

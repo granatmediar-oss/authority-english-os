@@ -37,3 +37,25 @@ Then redeploy.
 ## Note
 
 This is an MVP sync model using a browser device key. For production, replace it with Supabase Auth and RLS policies based on `auth.uid()`.
+
+
+## Phase 2: AI route generator
+
+This version adds `/api/generate-route`.
+
+It can generate a 30-day language route with:
+- scenarios
+- 3 daily phrases
+- emergency phrases
+- dialogues
+- Russian translations
+- pronunciation helpers
+
+To enable real AI generation in Vercel, add Environment Variables:
+
+```bash
+OPENAI_API_KEY=your_openai_api_key
+OPENAI_MODEL=gpt-4o-mini
+```
+
+If `OPENAI_API_KEY` is not set, the app still works and returns a safe demo route. This allows beta testing without API balance.
