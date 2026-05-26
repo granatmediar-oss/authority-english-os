@@ -612,19 +612,84 @@ const routeDays = [
   { day: 7, ru: "Повторение недели", en: "Weekly review" },
 ];
 
-function scoreAttempt(text: string, scenario: Scenario, level: LevelId, helpOpens: number) {
-  const clean = text.toLowerCase();
-  const matched = scenario.keywords.filter((word) => clean.includes(word.toLowerCase())).length;
-  const vocabularyScore = Math.min(100, Math.round((matched / Math.max(1, scenario.keywords.length)) * 100));
-  const clarityBase = Math.min(100, Math.max(15, Math.round(text.trim().length / (level === "zero" ? 1.4 : 2.2))));
-  const structureSignals = ["because", "before", "first", "please", "need", "can", "could", "understand", "thank"];
-  const structureScore = Math.min(100, structureSignals.filter((word) => clean.includes(word)).length * 12 + 25);
+function normalizeAnswer(text: string) {
+  return text
+    .toLowerCase()
+    .replace(/[\u2019']/g, "")
+    .replace(/[.,!?;:()\[\]{}"“”]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function phraseSimilarity(userText: string, targetText: string) {
+  const user = normalizeAnswer(userText);
+  const target = normalizeAnswer(targetText);
+  if (!user || !target) return 0;
+  if (user === target || user.includes(target) || target.includes(user)) {
+    const lengthRatio = Math.min(user.length, target.length) / Math.max(user.length, target.length);
+    return Math.round(70 + lengthRatio * 30);
+  }
+  const targetWords = target.split(" ").filter(Boolean);
+  if (targetWords.length <= 1) return user.includes(target) || target.includes(user) ? 100 : 0;
+  const matchedWords = targetWords.filter((word) => user.includes(word)).length;
+  return Math.round((matchedWords / Math.max(1, targetWords.length)) * 100);
+}
+
+function getScoreLabels(goal: GoalId, ui: UI) {
+  const labels = {
+    authority: { ru: ["Словарь", "Позиция", "Ясность"], en: ["Vocabulary", "Position", "Clarity"] },
+    "new-country": { ru: ["Смысл", "Полезная фраза", "Ясность"], en: ["Meaning", "Useful phrase", "Clarity"] },
+    job: { ru: ["Самопрезентация", "Структура", "Ясность"], en: ["Self-presentation", "Structure", "Clarity"] },
+    "parent-child": { ru: ["Понимание", "Поддержка", "Ясность"], en: ["Understanding", "Support", "Clarity"] },
+    conversation: { ru: ["Реакция", "Естественность", "Ясность"], en: ["Response", "Naturalness", "Clarity"] },
+  } as const;
+  return labels[goal][ui];
+}
+
+function scoreAttempt(text: string, scenario: Scenario, level: LevelId, helpOpens: number, goal: GoalId) {
+  const clean = normalizeAnswer(text);
+  const beginnerMatch = phraseSimilarity(text, scenario.beginner);
+  const strongerMatch = phraseSimilarity(text, scenario.stronger);
+  const keywordMatches = scenario.keywords.filter((word) => clean.includes(normalizeAnswer(String(word)))).length;
+  const keywordScore = Math.min(100, Math.round((keywordMatches / Math.max(1, scenario.keywords.length)) * 100));
+
+  // For level zero, one correct short survival phrase is success. Do not punish a beginner for being brief.
+  const phraseScore = Math.max(beginnerMatch, Math.round(strongerMatch * 0.9), keywordScore);
+  const meaningScore = level === "zero" && beginnerMatch >= 65 ? Math.max(85, beginnerMatch) : Math.max(phraseScore, keywordScore);
+
+  const tokenCount = clean ? clean.split(/\s+/).length : 0;
+  const charCount = clean.length;
+  const minimalEnough = level === "zero" ? (beginnerMatch >= 65 || charCount >= 2) : tokenCount >= 3;
+  const clarityBase = minimalEnough ? 72 : 30;
   const supportPenalty = Math.min(15, helpOpens * 3);
-  const clarityScore = Math.max(10, Math.round((clarityBase + structureScore) / 2) - supportPenalty);
-  const positionSignals = ["need", "clarify", "understand", "repeat", "please", "risk", "architecture", "value", "appointment"];
-  const positionScore = Math.min(100, positionSignals.filter((word) => clean.includes(word)).length * 12 + 20);
-  const total = Math.round((vocabularyScore + clarityScore + positionScore) / 3);
-  return { vocabularyScore, clarityScore, positionScore, total };
+  const clarityBonus = Math.min(18, tokenCount * 3);
+  const clarityScore = Math.max(10, Math.min(100, clarityBase + clarityBonus - supportPenalty));
+
+  const usefulPhraseScore = Math.max(beginnerMatch, keywordScore);
+  const structureSignals = ["because", "before", "first", "please", "need", "can", "could", "understand", "thank", "sorry"];
+  const structureScore = Math.min(100, structureSignals.filter((word) => clean.includes(word)).length * 12 + 35);
+  const authoritySignals = ["risk", "architecture", "decision", "scope", "data", "logic", "founder", "product", "estimate", "before"];
+  const authorityScore = Math.min(100, authoritySignals.filter((word) => clean.includes(word)).length * 12 + Math.max(25, keywordScore));
+
+  let vocabularyScore = usefulPhraseScore;
+  let positionScore = structureScore;
+
+  if (goal === "authority") {
+    vocabularyScore = Math.max(keywordScore, Math.round((beginnerMatch + keywordScore) / 2));
+    positionScore = authorityScore;
+  } else if (goal === "job") {
+    vocabularyScore = Math.max(meaningScore, keywordScore);
+    positionScore = structureScore;
+  } else if (goal === "parent-child") {
+    vocabularyScore = meaningScore;
+    positionScore = Math.max(usefulPhraseScore, clean.includes("mistake") || clean.includes("practice") || clean.includes("child") ? 80 : 45);
+  } else if (goal === "conversation") {
+    vocabularyScore = Math.max(usefulPhraseScore, beginnerMatch);
+    positionScore = Math.max(clarityScore, clean.includes("moment") || clean.includes("repeat") || clean.includes("more") ? 85 : 50);
+  }
+
+  const total = Math.round((meaningScore + vocabularyScore + positionScore + clarityScore) / 4);
+  return { vocabularyScore, clarityScore, positionScore, meaningScore, total };
 }
 
 function useLocalStorage<T>(key: string, initialValue: T) {
@@ -774,7 +839,12 @@ export default function LanguageGoalOS() {
   }, [supabaseClient, clientKey, ui, targetLang, goal, level]);
 
   const activeScenario = routeScenarios.find((s) => s.id === activeScenarioId) || scenarios.find((s) => s.id === activeScenarioId) || routeScenarios[0] || scenarios[0];
-  const score = useMemo(() => scoreAttempt(attempt, activeScenario, level, helpOpens), [attempt, activeScenario, level, helpOpens]);
+  const scoringGoal = activeScenario?.goal || goal;
+  const score = useMemo(() => scoreAttempt(attempt, activeScenario, level, helpOpens, scoringGoal), [attempt, activeScenario, level, helpOpens, scoringGoal]);
+  const scoreLabels = getScoreLabels(scoringGoal, ui);
+  const metricOneValue = aiFeedback?.meaningScore ?? score.meaningScore;
+  const metricTwoValue = scoringGoal === "authority" ? (aiFeedback?.positionScore ?? score.positionScore) : (aiFeedback?.vocabularyScore ?? score.vocabularyScore);
+  const metricThreeValue = aiFeedback?.clarityScore ?? score.clarityScore;
 
   const fallbackFeedback: AiFeedback = {
     source: "fallback",
@@ -782,7 +852,7 @@ export default function LanguageGoalOS() {
     vocabularyScore: score.vocabularyScore,
     positionScore: score.positionScore,
     clarityScore: score.clarityScore,
-    meaningScore: score.positionScore,
+    meaningScore: score.meaningScore,
     correctedAnswer: attempt,
     strongerVersion: activeScenario.stronger,
     feedbackRu: makeRuFeedback(score, level),
@@ -800,8 +870,9 @@ export default function LanguageGoalOS() {
         body: JSON.stringify({
           interfaceLanguage: ui,
           targetLanguage: targetLang,
-          goal,
+          goal: scoringGoal,
           level,
+          metricLabels: getScoreLabels(scoringGoal, ui),
           transcript: attempt,
           scenario: {
             titleEn: activeScenario.titleEn,
@@ -839,13 +910,13 @@ export default function LanguageGoalOS() {
       vocabularyScore: Math.round(feedback.vocabularyScore ?? score.vocabularyScore),
       positionScore: Math.round(feedback.positionScore ?? score.positionScore),
       clarityScore: Math.round(feedback.clarityScore ?? score.clarityScore),
-      meaningScore: Math.round(feedback.meaningScore ?? score.positionScore),
+      meaningScore: Math.round(feedback.meaningScore ?? score.meaningScore),
     };
 
     const row = {
       id: Date.now(),
       date: new Date().toLocaleString(),
-      goal,
+      goal: scoringGoal,
       level,
       targetLang,
       scenarioId: activeScenario.id,
@@ -863,7 +934,7 @@ export default function LanguageGoalOS() {
       setSyncStatus(t.syncSaving);
       const { error } = await db.from("learning_attempts").insert({
         client_key: clientKey,
-        goal,
+        goal: scoringGoal,
         level,
         target_language: targetLang,
         scenario_id: activeScenario.id,
@@ -1002,6 +1073,9 @@ export default function LanguageGoalOS() {
   const avg = attempts.length ? Math.round(attempts.reduce((sum, item) => sum + item.total, 0) / attempts.length) : 0;
   const best = attempts.length ? Math.max(...attempts.map((item) => item.total)) : 0;
   const last = attempts[0]?.total || 0;
+  const completedSituations = Array.from(new Map(attempts.filter((item) => (Number(item.total) || 0) >= 70).map((item) => [item.scenarioId || item.scenarioTitle, item])).values());
+  const completionLabel = ui === "ru" ? "Ситуаций уже можно пройти" : "Situations you can handle";
+  const completedLabel = ui === "ru" ? "Засчитано как реальная ситуация" : "Counted as a real-life situation";
 
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-50">
@@ -1165,9 +1239,9 @@ export default function LanguageGoalOS() {
                       {isAnalyzingAttempt && <div className="rounded-2xl border border-orange-500/30 bg-orange-500/10 p-4 text-orange-100">{t.aiAnalyzing}</div>}
                       <div className="grid gap-3 md:grid-cols-4">
                         <Score label={t.total} value={aiFeedback?.totalScore ?? score.total} />
-                        <Score label={t.vocab} value={aiFeedback?.vocabularyScore ?? score.vocabularyScore} />
-                        <Score label={t.authority} value={aiFeedback?.positionScore ?? score.positionScore} />
-                        <Score label={t.clarity} value={aiFeedback?.clarityScore ?? score.clarityScore} />
+                        <Score label={scoreLabels[0]} value={metricOneValue} />
+                        <Score label={scoreLabels[1]} value={metricTwoValue} />
+                        <Score label={scoreLabels[2]} value={metricThreeValue} />
                       </div>
                       <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5">
                         <div className="mb-3 flex items-center justify-between gap-3">
@@ -1270,8 +1344,16 @@ export default function LanguageGoalOS() {
           <TabsContent value="progress">
             <Card className="border-neutral-800 bg-neutral-900 text-neutral-50"><CardContent className="p-6">
               <div className="mb-5 flex items-center justify-between gap-3"><div className="flex items-center gap-3"><BarChart3 className="h-5 w-5 text-orange-400" /><h2 className="text-2xl font-semibold">{t.progress}</h2></div>{attempts.length > 0 && <Button variant="outline" className="border-neutral-700 bg-transparent text-neutral-100 hover:bg-neutral-800" onClick={clearAllProgress}>{t.clearProgress}</Button>}</div>
-              <div className="mb-6 grid gap-3 md:grid-cols-4"><Score label={t.attempts} value={attempts.length} /><Score label={t.avg} value={avg} /><Score label={t.best} value={best} /><Score label={t.last} value={last} /></div>
-              {attempts.length === 0 ? <p className="text-neutral-400">{t.noAttempts}</p> : <div className="space-y-4">{attempts.map((item) => <div key={item.id} className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5"><div className="mb-2 flex items-center justify-between gap-3"><h3 className="font-semibold text-neutral-100">{item.scenarioTitle}</h3><Badge className="bg-orange-500 hover:bg-orange-500">{item.total}/100</Badge></div><p className="mb-2 text-sm text-neutral-500">{item.date}</p><p className="text-neutral-300">{item.answer}</p></div>)}</div>}
+              <div className="mb-6 grid gap-3 md:grid-cols-4"><Score label={completionLabel} value={completedSituations.length} /><Score label={t.attempts} value={attempts.length} /><Score label={t.avg} value={avg} /><Score label={t.best} value={best} /></div>
+              {completedSituations.length > 0 && (
+                <div className="mb-6 rounded-2xl border border-orange-500/30 bg-orange-500/10 p-5">
+                  <div className="mb-3 text-sm font-medium text-orange-300">{completionLabel}</div>
+                  <ul className="space-y-2 text-neutral-100">
+                    {completedSituations.slice(0, 6).map((item: any) => <li key={item.id}>• {item.scenarioTitle} <span className="text-neutral-400">— {item.total}/100</span></li>)}
+                  </ul>
+                </div>
+              )}
+              {attempts.length === 0 ? <p className="text-neutral-400">{t.noAttempts}</p> : <div className="space-y-4">{attempts.map((item) => <div key={item.id} className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5"><div className="mb-2 flex items-center justify-between gap-3"><h3 className="font-semibold text-neutral-100">{item.scenarioTitle}</h3><Badge className={(Number(item.total) || 0) >= 70 ? "bg-orange-500 hover:bg-orange-500" : "bg-neutral-700 hover:bg-neutral-700"}>{(Number(item.total) || 0) >= 70 ? `${completedLabel} · ` : ""}{item.total}/100</Badge></div><p className="mb-2 text-sm text-neutral-500">{item.date}</p><p className="text-neutral-300">{item.answer}</p></div>)}</div>}
             </CardContent></Card>
           </TabsContent>
         </Tabs>
