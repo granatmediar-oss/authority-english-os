@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { createSupabaseBrowserClient, isSupabaseConfigured } from "@/lib/supabase";
 import {
   BarChart3,
   BookOpen,
@@ -107,6 +108,11 @@ const uiText = {
     translation: "Перевод смысла",
     routeStructure: "Структура 30-дневного маршрута",
     aiLater: "AI-слой позже будет генерировать сценарии, озвучку и фидбек под выбранный язык и уровень.",
+    syncOn: "Прогресс сохраняется в Supabase",
+    syncOff: "Сейчас прогресс хранится только в этом браузере",
+    syncSaving: "Сохраняю...",
+    syncSaved: "Сохранено",
+    syncError: "Ошибка сохранения",
   },
   en: {
     productBadge: "Goal-Based Language OS",
@@ -163,6 +169,11 @@ const uiText = {
     translation: "Meaning translation",
     routeStructure: "30-day route structure",
     aiLater: "Later, the AI layer will generate scenarios, voice, and feedback for the selected language and level.",
+    syncOn: "Progress is saved in Supabase",
+    syncOff: "Progress is stored only in this browser now",
+    syncSaving: "Saving...",
+    syncSaved: "Saved",
+    syncError: "Sync error",
   },
 };
 
@@ -547,9 +558,13 @@ export default function LanguageGoalOS() {
   const [showFeedback, setShowFeedback] = useState(false);
   const [helpOpens, setHelpOpens] = useState(0);
   const [attempts, setAttempts] = useLocalStorage<any[]>("lgos_attempts", []);
+  const [clientKey, setClientKey] = useLocalStorage<string>("lgos_client_key", "");
+  const [syncStatus, setSyncStatus] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [recordingStatus, setRecordingStatus] = useState(uiText[ui].statusReady);
   const recognitionRef = useRef<any>(null);
+  const recordingBaseRef = useRef<string>("");
+  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
 
   const t = uiText[ui];
   const selectedGoal = goals.find((g) => g.id === goal)!;
@@ -564,10 +579,97 @@ export default function LanguageGoalOS() {
 
   useEffect(() => setRecordingStatus(uiText[ui].statusReady), [ui]);
 
+
+  useEffect(() => {
+    if (!clientKey) {
+      const key = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `lgos-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      setClientKey(key);
+    }
+  }, [clientKey, setClientKey]);
+
+  useEffect(() => {
+    if (!supabase || !clientKey) {
+      setSyncStatus(isSupabaseConfigured() ? "" : t.syncOff);
+      return;
+    }
+
+    let cancelled = false;
+    async function loadCloudState() {
+      setSyncStatus(t.syncSaving);
+      const [{ data: profile }, { data: cloudAttempts, error }] = await Promise.all([
+        supabase
+          .from("user_profiles")
+          .select("interface_language,target_language,goal,level")
+          .eq("client_key", clientKey)
+          .maybeSingle(),
+        supabase
+          .from("learning_attempts")
+          .select("*")
+          .eq("client_key", clientKey)
+          .order("created_at", { ascending: false })
+          .limit(100),
+      ]);
+
+      if (cancelled) return;
+      if (profile) {
+        setUi(profile.interface_language as UI);
+        setTargetLang(profile.target_language as TargetLang);
+        setGoal(profile.goal as GoalId);
+        setLevel(profile.level as LevelId);
+      }
+      if (cloudAttempts && cloudAttempts.length > 0) {
+        setAttempts(
+          cloudAttempts.map((row: any) => ({
+            id: row.id,
+            date: new Date(row.created_at).toLocaleString(),
+            goal: row.goal,
+            level: row.level,
+            targetLang: row.target_language,
+            scenarioId: row.scenario_id,
+            scenarioTitle: row.scenario_title,
+            answer: row.answer,
+            total: row.score_total,
+            vocabularyScore: row.score_vocabulary,
+            positionScore: row.score_position,
+            clarityScore: row.score_clarity,
+            helpOpens: row.help_opens,
+          }))
+        );
+      }
+      setSyncStatus(error ? t.syncError : t.syncSaved);
+    }
+
+    loadCloudState();
+    return () => {
+      cancelled = true;
+    };
+  }, [supabase, clientKey]);
+
+  useEffect(() => {
+    if (!supabase || !clientKey) return;
+    const timer = setTimeout(async () => {
+      setSyncStatus(t.syncSaving);
+      const { error } = await supabase.from("user_profiles").upsert(
+        {
+          client_key: clientKey,
+          interface_language: ui,
+          target_language: targetLang,
+          goal,
+          level,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "client_key" }
+      );
+      setSyncStatus(error ? t.syncError : t.syncSaved);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [supabase, clientKey, ui, targetLang, goal, level]);
+
   const activeScenario = scenarios.find((s) => s.id === activeScenarioId) || routeScenarios[0] || scenarios[0];
   const score = useMemo(() => scoreAttempt(attempt, activeScenario, level, helpOpens), [attempt, activeScenario, level, helpOpens]);
 
-  const saveAttempt = () => {
+  const saveAttempt = async () => {
     if (!attempt.trim()) return;
     const row = {
       id: Date.now(),
@@ -583,6 +685,34 @@ export default function LanguageGoalOS() {
     };
     setAttempts([row, ...attempts]);
     setShowFeedback(true);
+
+    if (supabase && clientKey) {
+      setSyncStatus(t.syncSaving);
+      const { error } = await supabase.from("learning_attempts").insert({
+        client_key: clientKey,
+        goal,
+        level,
+        target_language: targetLang,
+        scenario_id: activeScenario.id,
+        scenario_title: row.scenarioTitle,
+        answer: attempt,
+        score_total: score.total,
+        score_vocabulary: score.vocabularyScore,
+        score_position: score.positionScore,
+        score_clarity: score.clarityScore,
+        help_opens: helpOpens,
+      });
+      setSyncStatus(error ? t.syncError : t.syncSaved);
+    }
+  };
+
+  const clearAllProgress = async () => {
+    setAttempts([]);
+    if (supabase && clientKey) {
+      setSyncStatus(t.syncSaving);
+      const { error } = await supabase.from("learning_attempts").delete().eq("client_key", clientKey);
+      setSyncStatus(error ? t.syncError : t.syncSaved);
+    }
   };
 
   const startRoute = () => {
@@ -612,6 +742,13 @@ export default function LanguageGoalOS() {
       setRecordingStatus(ui === "ru" ? "Распознавание речи не поддерживается здесь. Используйте ручной ввод." : "Speech recognition is not supported here. Use manual input.");
       return;
     }
+
+    // Important: browser SpeechRecognition returns interim results many times.
+    // If we append every interim result to the text area, the answer becomes duplicated:
+    // "I... I am... I am product...". So we keep the text that existed before recording
+    // as a base and replace the live transcript instead of appending every partial result.
+    recordingBaseRef.current = attempt.trim();
+
     const recognition = new SpeechRecognition();
     recognition.lang = targetLang === "en" ? "en-US" : targetLang === "de" ? "de-DE" : targetLang === "es" ? "es-ES" : targetLang === "it" ? "it-IT" : targetLang === "ru" ? "ru-RU" : targetLang === "zh" ? "zh-CN" : "ko-KR";
     recognition.interimResults = true;
@@ -621,9 +758,19 @@ export default function LanguageGoalOS() {
       setRecordingStatus(ui === "ru" ? "Запись идёт. Говорите сейчас." : "Recording. Speak now.");
     };
     recognition.onresult = (event: any) => {
-      let transcript = "";
-      for (let i = event.resultIndex; i < event.results.length; i++) transcript += event.results[i][0].transcript;
-      setAttempt((prev) => (prev.trim() ? `${prev.trim()} ${transcript}` : transcript));
+      const finalParts: string[] = [];
+      const interimParts: string[] = [];
+
+      for (let i = 0; i < event.results.length; i++) {
+        const text = event.results[i][0].transcript.trim();
+        if (!text) continue;
+        if (event.results[i].isFinal) finalParts.push(text);
+        else interimParts.push(text);
+      }
+
+      const liveTranscript = [...finalParts, ...interimParts].join(" ").replace(/\s+/g, " ").trim();
+      const base = recordingBaseRef.current;
+      setAttempt([base, liveTranscript].filter(Boolean).join(" ").trim());
     };
     recognition.onerror = () => {
       setIsRecording(false);
@@ -666,6 +813,9 @@ export default function LanguageGoalOS() {
               <Button size="sm" variant={ui === "en" ? "default" : "outline"} className={ui === "en" ? "bg-orange-500 hover:bg-orange-600" : "border-neutral-700 bg-transparent text-neutral-100"} onClick={() => setUi("en")}>EN</Button>
               <Button size="sm" variant={ui === "ru" ? "default" : "outline"} className={ui === "ru" ? "bg-orange-500 hover:bg-orange-600" : "border-neutral-700 bg-transparent text-neutral-100"} onClick={() => setUi("ru")}>RU / РФ</Button>
               <HelpButton ui={ui} title={ui === "ru" ? "Как пользоваться" : "How to use"} body={ui === "ru" ? "Сначала выберите язык, цель и уровень. Потом каждый день проходите один сценарий: прочитать, сказать, записать, проверить, повторить сильную версию." : "Choose language, goal, and level. Then complete one daily scenario: read, speak, record, analyze, repeat the stronger version."} />
+              <Badge variant="outline" className="border-neutral-700 text-neutral-300">
+                {supabase ? t.syncOn : t.syncOff}{syncStatus && ` · ${syncStatus}`}
+              </Badge>
             </div>
           </div>
           <Card className="border-neutral-800 bg-neutral-900 text-neutral-50">
@@ -777,7 +927,7 @@ export default function LanguageGoalOS() {
                     <div className="flex flex-wrap gap-3">
                       <Button onClick={startRecording} disabled={isRecording} className="bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-50"><Mic className="mr-2 h-4 w-4" />{t.record}</Button>
                       <Button onClick={stopRecording} disabled={!isRecording} variant="outline" className="border-neutral-700 bg-transparent text-neutral-100 hover:bg-neutral-800 disabled:opacity-50"><Square className="mr-2 h-4 w-4" />{t.stop}</Button>
-                      <Button onClick={() => setAttempt("")} variant="outline" className="border-neutral-700 bg-transparent text-neutral-100 hover:bg-neutral-800">{t.clear}</Button>
+                      <Button onClick={() => { setAttempt(""); recordingBaseRef.current = ""; }} variant="outline" className="border-neutral-700 bg-transparent text-neutral-100 hover:bg-neutral-800">{t.clear}</Button>
                     </div>
                   </div>
                   <div className="mt-4 flex flex-wrap gap-3">
@@ -871,7 +1021,7 @@ export default function LanguageGoalOS() {
 
           <TabsContent value="progress">
             <Card className="border-neutral-800 bg-neutral-900 text-neutral-50"><CardContent className="p-6">
-              <div className="mb-5 flex items-center justify-between gap-3"><div className="flex items-center gap-3"><BarChart3 className="h-5 w-5 text-orange-400" /><h2 className="text-2xl font-semibold">{t.progress}</h2></div>{attempts.length > 0 && <Button variant="outline" className="border-neutral-700 bg-transparent text-neutral-100 hover:bg-neutral-800" onClick={() => setAttempts([])}>{t.clearProgress}</Button>}</div>
+              <div className="mb-5 flex items-center justify-between gap-3"><div className="flex items-center gap-3"><BarChart3 className="h-5 w-5 text-orange-400" /><h2 className="text-2xl font-semibold">{t.progress}</h2></div>{attempts.length > 0 && <Button variant="outline" className="border-neutral-700 bg-transparent text-neutral-100 hover:bg-neutral-800" onClick={clearAllProgress}>{t.clearProgress}</Button>}</div>
               <div className="mb-6 grid gap-3 md:grid-cols-4"><Score label={t.attempts} value={attempts.length} /><Score label={t.avg} value={avg} /><Score label={t.best} value={best} /><Score label={t.last} value={last} /></div>
               {attempts.length === 0 ? <p className="text-neutral-400">{t.noAttempts}</p> : <div className="space-y-4">{attempts.map((item) => <div key={item.id} className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5"><div className="mb-2 flex items-center justify-between gap-3"><h3 className="font-semibold text-neutral-100">{item.scenarioTitle}</h3><Badge className="bg-orange-500 hover:bg-orange-500">{item.total}/100</Badge></div><p className="mb-2 text-sm text-neutral-500">{item.date}</p><p className="text-neutral-300">{item.answer}</p></div>)}</div>}
             </CardContent></Card>

@@ -1,58 +1,39 @@
-# Authority English OS
+# Language Goal OS — Supabase MVP
 
-A deploy-ready Next.js MVP for daily English speaking practice focused on Product Architecture, founder calls, no-code, AI risk, and conference-level speaking.
+This version adds the database foundation for scaling:
 
-## What works now
+- saves selected interface language, target language, goal and level;
+- saves training attempts and scores;
+- reloads progress from Supabase when the same browser opens the app again;
+- falls back to browser localStorage if Supabase env variables are not configured.
 
-- Start Here / 7-day beginner plan
-- Daily founder-call scenario practice
-- Browser voice recognition via Web Speech API
-- Manual mode fallback
-- Transcript box
-- Basic score: vocabulary, authority, clarity
-- Stronger authority version
-- Listen button using browser speech synthesis
-- Scenario library
-- Phrase bank
-- Conference track
-- Session-based saved attempts
+## 1. Create Supabase tables
 
-## Best browser
-
-Use Google Chrome on desktop.
-
-Voice recognition works best when the app is deployed on HTTPS, for example on Vercel.
-
-## Local setup
-
-```bash
-npm install
-npm run dev
-```
-
-Open:
+Open Supabase → SQL Editor → paste and run the contents of:
 
 ```text
-http://localhost:3000
+supabase/schema.sql
 ```
 
-## Deploy to Vercel
+## 2. Add Vercel environment variables
 
-1. Create a new GitHub repository.
-2. Upload all project files.
-3. Go to Vercel.
-4. Import the GitHub repository.
-5. Click Deploy.
-6. Open the HTTPS link in Google Chrome.
-7. Allow microphone access.
+Vercel → Project → Settings → Environment Variables:
 
-## Next product layer
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
 
-To turn this into a full learning system, add:
+Then redeploy.
 
-- Supabase for users, attempts, phrases, and progress
-- OpenAI Whisper for accurate transcription
-- OpenAI feedback for real authority-based analysis
-- Spaced repetition scheduler
-- 90-day learning plan
-- Login and personal dashboard
+## 3. Test
+
+1. Select a language, goal and level.
+2. Complete one training attempt.
+3. Click Analyze / Проверить ответ.
+4. Open Progress / Прогресс.
+5. Refresh the page: the route and attempts should remain.
+
+## Note
+
+This is an MVP sync model using a browser device key. For production, replace it with Supabase Auth and RLS policies based on `auth.uid()`.
