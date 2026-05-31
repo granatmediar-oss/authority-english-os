@@ -1313,11 +1313,15 @@ export default function LanguageGoalOS() {
               <CardContent className="p-6">
                 <div className="mb-5 flex items-center gap-3"><BookOpen className="h-5 w-5 text-orange-400" /><h2 className="text-2xl font-semibold">{t.phrases}</h2></div>
                 <div className="grid gap-4 md:grid-cols-2">
-                  {routeScenarios.flatMap((s) => [s.beginner, s.stronger]).slice(0, 8).map((phrase, index) => (
-                    <div key={phrase + index} className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5">
-                      <Badge variant="outline" className="mb-3 border-orange-500/40 text-orange-300">{index % 2 === 0 ? t.beginnerAnswer : t.stronger}</Badge>
-                      <p className="mb-2 text-lg font-medium text-neutral-100">{phrase}</p>
-                      <p className="text-sm text-neutral-400">{index % 2 === 0 ? routeScenarios[Math.floor(index / 2)]?.beginnerRu : routeScenarios[Math.floor(index / 2)]?.strongerRu}</p>
+                  {routeScenarios.flatMap((s) => [
+                    { phrase: s.beginner, translation: s.beginnerRu, pronunciation: s.readRu, kind: t.beginnerAnswer },
+                    { phrase: s.stronger, translation: s.strongerRu, pronunciation: s.strongerReadRu, kind: t.stronger },
+                  ]).slice(0, 8).map((item, index) => (
+                    <div key={item.phrase + index} className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5">
+                      <Badge variant="outline" className="mb-3 border-orange-500/40 text-orange-300">{item.kind}</Badge>
+                      <p className="mb-2 text-lg font-medium text-neutral-100">{item.phrase}</p>
+                      <p className="text-sm text-neutral-400">{item.translation}</p>
+                      <PronunciationHelp ui={ui} text={item.pronunciation} onOpen={() => setHelpOpens((v) => v + 1)} />
                     </div>
                   ))}
                 </div>
@@ -1369,6 +1373,41 @@ export default function LanguageGoalOS() {
   );
 }
 
+
+function normalizePhraseKey(text: string) {
+  return text.toLowerCase().replace(/[’']/g, "").replace(/[?.!,]/g, "").replace(/\s+/g, " ").trim();
+}
+
+const pronunciationHintsRu: Record<string, string> = {
+  "what is your budget": "Уот из ёр баджет?",
+  "can we adjust the price": "Кэн уи эджаст зэ прайс?",
+  "what do you need": "Уот ду ю ниид?",
+  "can you explain your requirements": "Кэн ю иксплэйн ёр реквайрмэнтс?",
+  "our price is 3000": "Ауэр прайс из сри таузэнд.",
+  "this price includes services": "Зис прайс инклюдс сёрвисэз.",
+  "i understand your concern": "Ай андэрстэнд ёр консёрн.",
+  "we offer value for this price": "Уи офэр вэлью фор зис прайс.",
+  "i am a product and decision architect": "Ай эм э продакт энд дисижн архитэкт.",
+  "i need to understand the product first": "Ай ниид ту андэрстэнд зэ продакт фёрст.",
+  "sorry i dont understand can you repeat please": "Сори, ай доунт андэрстэнд. Кэн ю рипит, плиз?",
+  "hello": "Хэллоу.",
+  "thank you": "Сэнк ю.",
+  "give me a moment please": "Гив ми э моумэнт, плиз.",
+};
+
+function getSafePronunciationRu(phrase: string, fallbackPronunciation: string, fallbackPhrase?: string) {
+  const key = normalizePhraseKey(phrase);
+  const fallbackKey = fallbackPhrase ? normalizePhraseKey(fallbackPhrase) : "";
+
+  if (pronunciationHintsRu[key]) return pronunciationHintsRu[key];
+
+  // Use the supplied pronunciation only when it belongs to the same phrase.
+  // This prevents wrong hints like “Can we adjust the price?” → “Уот из ёр баджет?”.
+  if (fallbackKey && key === fallbackKey) return fallbackPronunciation;
+
+  return "Подсказка чтения для этой фразы пока не добавлена. Используйте кнопку Slow / Слушать и повторите фразу по аудио.";
+}
+
 function routeToScenarios(route: GeneratedRoute | null, goal: GoalId, level: LevelId): Scenario[] {
   if (!route?.days?.length) return [];
   return route.days.map((day) => ({
@@ -1386,7 +1425,7 @@ function routeToScenarios(route: GeneratedRoute | null, goal: GoalId, level: Lev
     readRu: day.pronunciationRu,
     stronger: day.strongerPhrase,
     strongerRu: day.strongerTranslationRu,
-    strongerReadRu: day.pronunciationRu,
+    strongerReadRu: getSafePronunciationRu(day.strongerPhrase, day.pronunciationRu, day.beginnerPhrase),
     keywords: [...day.dailyPhrases, ...day.emergencyPhrases]
       .join(" ")
       .toLowerCase()
