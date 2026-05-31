@@ -22,6 +22,7 @@ import {
   ShieldCheck,
   Square,
   Target,
+  Users,
   Volume2,
 } from "lucide-react";
 
@@ -29,6 +30,10 @@ type UI = "ru" | "en";
 type GoalId = "authority" | "new-country" | "job" | "parent-child" | "conversation";
 type LevelId = "zero" | "a1" | "a2" | "b1";
 type TargetLang = "en" | "es" | "it" | "de" | "zh" | "ko" | "ru";
+type LearnerType = "adult" | "child";
+type SchoolGrade = "3" | "4" | "5" | "6" | "7";
+type TextbookLine = "spotlight" | "rainbow" | "forward" | "other";
+type SchoolMode = "summer-review" | "explain-topic" | "help-homework" | "check-answer";
 
 type Scenario = {
   id: string;
@@ -336,6 +341,132 @@ const levels: { id: LevelId; ru: string; en: string; descRu: string; descEn: str
   { id: "a2", ru: "A2", en: "A2", descRu: "Могу говорить, но теряюсь в живом диалоге.", descEn: "I can speak, but I freeze in real dialogue." },
   { id: "b1", ru: "B1+", en: "B1+", descRu: "Хочу звучать увереннее, точнее и взрослее.", descEn: "I want to sound more confident, precise, and mature." },
 ];
+
+const schoolGrades: { id: SchoolGrade; label: string; noteRu: string; noteEn: string }[] = [
+  { id: "3", label: "3 класс", noteRu: "простые слова, чтение, базовые фразы", noteEn: "basic words, reading, simple phrases" },
+  { id: "4", label: "4 класс", noteRu: "база, вопросы, короткие тексты", noteEn: "basics, questions, short texts" },
+  { id: "5", label: "5 класс", noteRu: "переход в среднюю школу, Present Simple", noteEn: "middle school transition, Present Simple" },
+  { id: "6", label: "6 класс", noteRu: "времена, тексты, самостоятельность", noteEn: "tenses, texts, independence" },
+  { id: "7", label: "7 класс", noteRu: "закрепление грамматики и говорения", noteEn: "grammar and speaking reinforcement" },
+];
+
+const textbookLines: { id: TextbookLine; ru: string; en: string }[] = [
+  { id: "spotlight", ru: "Spotlight / Английский в фокусе", en: "Spotlight" },
+  { id: "rainbow", ru: "Rainbow English", en: "Rainbow English" },
+  { id: "forward", ru: "Forward", en: "Forward" },
+  { id: "other", ru: "Другой учебник", en: "Other textbook" },
+];
+
+const schoolModes: { id: SchoolMode; ru: string; en: string; descRu: string; descEn: string }[] = [
+  { id: "summer-review", ru: "Летнее повторение", en: "Summer review", descRu: "мягко повторить слабые темы к сентябрю", descEn: "review weak topics before September" },
+  { id: "explain-topic", ru: "Объяснить тему", en: "Explain a topic", descRu: "короткое объяснение правила простыми словами", descEn: "a short simple explanation" },
+  { id: "help-homework", ru: "Помочь с заданием", en: "Help with homework", descRu: "не готовый ответ, а шаги к самостоятельному решению", descEn: "steps toward independent work" },
+  { id: "check-answer", ru: "Проверить ответ", en: "Check my answer", descRu: "объяснить ошибку и что повторить", descEn: "explain the mistake and what to repeat" },
+];
+
+const schoolScenarios: Scenario[] = [
+  {
+    id: "school-present-simple",
+    goal: "parent-child",
+    level: ["zero", "a1", "a2", "b1"],
+    typeEn: "School topic",
+    typeRu: "Школьная тема",
+    titleEn: "Present Simple: daily routine",
+    titleRu: "Present Simple: распорядок дня",
+    situationEn: "The child needs to make simple sentences about daily routine.",
+    situationRu: "Ребёнку нужно составить простые предложения о распорядке дня.",
+    beginner: "I get up at seven o’clock.",
+    beginnerRu: "Я встаю в семь часов.",
+    readRu: "Ай гэт ап эт сэвэн о-клок.",
+    stronger: "I get up at seven o’clock and go to school in the morning.",
+    strongerRu: "Я встаю в семь часов и утром иду в школу.",
+    strongerReadRu: "Ай гэт ап эт сэвэн о-клок энд гоу ту скул ин зэ морнинг.",
+    keywords: ["get", "up", "school", "morning", "seven"],
+    principleEn: "The child learns the pattern I + verb for regular actions.",
+    principleRu: "Ребёнок закрепляет схему I + глагол для регулярных действий.",
+  },
+  {
+    id: "school-be",
+    goal: "parent-child",
+    level: ["zero", "a1", "a2", "b1"],
+    typeEn: "School topic",
+    typeRu: "Школьная тема",
+    titleEn: "To be: about myself",
+    titleRu: "To be: рассказ о себе",
+    situationEn: "The child needs to say simple sentences about themselves.",
+    situationRu: "Ребёнку нужно сказать простые предложения о себе.",
+    beginner: "I am a student.",
+    beginnerRu: "Я ученик / ученица.",
+    readRu: "Ай эм э стьюдэнт.",
+    stronger: "I am a student and I like English.",
+    strongerRu: "Я ученик / ученица, и мне нравится английский.",
+    strongerReadRu: "Ай эм э стьюдэнт энд ай лайк инглиш.",
+    keywords: ["i", "am", "student", "like", "english"],
+    principleEn: "The child learns when to use am/is/are without long grammar explanations.",
+    principleRu: "Ребёнок учится использовать am/is/are без длинных объяснений.",
+  },
+  {
+    id: "school-have-got",
+    goal: "parent-child",
+    level: ["zero", "a1", "a2", "b1"],
+    typeEn: "School topic",
+    typeRu: "Школьная тема",
+    titleEn: "Have got: family and things",
+    titleRu: "Have got: семья и вещи",
+    situationEn: "The child needs to say what they have.",
+    situationRu: "Ребёнку нужно сказать, что у него есть.",
+    beginner: "I have got a book.",
+    beginnerRu: "У меня есть книга.",
+    readRu: "Ай хэв гот э бук.",
+    stronger: "I have got a book and a pencil in my bag.",
+    strongerRu: "У меня в сумке есть книга и карандаш.",
+    strongerReadRu: "Ай хэв гот э бук энд э пэнсил ин май бэг.",
+    keywords: ["have", "got", "book", "pencil", "bag"],
+    principleEn: "The child sees the structure have got and uses it in a real sentence.",
+    principleRu: "Ребёнок видит структуру have got и использует её в реальной фразе.",
+  },
+  {
+    id: "school-question",
+    goal: "parent-child",
+    level: ["zero", "a1", "a2", "b1"],
+    typeEn: "School speaking",
+    typeRu: "Школьное говорение",
+    titleEn: "Ask a simple question",
+    titleRu: "Задать простой вопрос",
+    situationEn: "The child needs to ask a short question in English.",
+    situationRu: "Ребёнку нужно задать короткий вопрос на английском.",
+    beginner: "Do you like English?",
+    beginnerRu: "Тебе нравится английский?",
+    readRu: "Ду ю лайк инглиш?",
+    stronger: "Do you like English or another school subject?",
+    strongerRu: "Тебе нравится английский или другой школьный предмет?",
+    strongerReadRu: "Ду ю лайк инглиш ор эназэр скул сабджект?",
+    keywords: ["do", "you", "like", "english", "subject"],
+    principleEn: "The child practices question order through one safe phrase.",
+    principleRu: "Ребёнок тренирует порядок слов в вопросе через одну безопасную фразу.",
+  },
+  {
+    id: "school-check-answer",
+    goal: "parent-child",
+    level: ["zero", "a1", "a2", "b1"],
+    typeEn: "Check answer",
+    typeRu: "Проверка ответа",
+    titleEn: "Find and fix one mistake",
+    titleRu: "Найти и исправить одну ошибку",
+    situationEn: "The child writes an answer, and the system helps find one mistake.",
+    situationRu: "Ребёнок пишет ответ, а система помогает найти одну ошибку.",
+    beginner: "She likes apples.",
+    beginnerRu: "Ей нравятся яблоки.",
+    readRu: "Ши лайкс эплз.",
+    stronger: "She likes apples, but I like bananas.",
+    strongerRu: "Ей нравятся яблоки, а мне нравятся бананы.",
+    strongerReadRu: "Ши лайкс эплз, бат ай лайк бананэз.",
+    keywords: ["she", "likes", "apples", "i", "like"],
+    principleEn: "The child learns that he/she often needs -s in Present Simple.",
+    principleRu: "Ребёнок закрепляет, что после he/she часто нужно добавить -s в Present Simple.",
+  },
+];
+
 
 const scenarios: Scenario[] = [
   {
@@ -710,6 +841,11 @@ function useLocalStorage<T>(key: string, initialValue: T) {
 
 export default function LanguageGoalOS() {
   const [ui, setUi] = useLocalStorage<UI>("lgos_ui", "ru");
+  const [learnerType, setLearnerType] = useLocalStorage<LearnerType>("lgos_learner_type", "adult");
+  const [schoolGrade, setSchoolGrade] = useLocalStorage<SchoolGrade>("lgos_school_grade", "5");
+  const [textbookLine, setTextbookLine] = useLocalStorage<TextbookLine>("lgos_textbook_line", "spotlight");
+  const [schoolMode, setSchoolMode] = useLocalStorage<SchoolMode>("lgos_school_mode", "summer-review");
+  const [schoolTopic, setSchoolTopic] = useLocalStorage<string>("lgos_school_topic", "Present Simple / to be / have got");
   const [targetLang, setTargetLang] = useLocalStorage<TargetLang>("lgos_target_lang", "en");
   const [goal, setGoal] = useLocalStorage<GoalId>("lgos_goal", "new-country");
   const [level, setLevel] = useLocalStorage<LevelId>("lgos_level", "zero");
@@ -736,11 +872,18 @@ export default function LanguageGoalOS() {
   const t = uiText[ui];
   const selectedGoal = goals.find((g) => g.id === goal)!;
   const selectedLang = targetLanguages.find((l) => l.id === targetLang)!;
+  const selectedSchoolGrade = schoolGrades.find((g) => g.id === schoolGrade)!;
+  const selectedTextbook = textbookLines.find((book) => book.id === textbookLine)!;
+  const selectedSchoolMode = schoolModes.find((mode) => mode.id === schoolMode)!;
+  const displayGoal = learnerType === "child"
+    ? { promiseRu: "Для ребёнка: короткая понятная задача, помощь без решебника и вывод для родителя.", promiseEn: "For a child: a short clear task, guided help, and a parent summary." }
+    : selectedGoal;
   const generatedScenarios = useMemo(() => routeToScenarios(generatedRoute, goal, level), [generatedRoute, goal, level]);
   const routeScenarios = useMemo(() => {
+    if (learnerType === "child") return schoolScenarios.filter((s) => s.level.includes(level));
     const base = scenarios.filter((s) => s.goal === goal && s.level.includes(level));
     return generatedScenarios.length > 0 ? generatedScenarios : base;
-  }, [goal, level, generatedScenarios]);
+  }, [learnerType, goal, level, generatedScenarios]);
   const [activeScenarioId, setActiveScenarioId] = useState(routeScenarios[0]?.id || scenarios[0].id);
 
   useEffect(() => {
@@ -841,7 +984,9 @@ export default function LanguageGoalOS() {
   const activeScenario = routeScenarios.find((s) => s.id === activeScenarioId) || scenarios.find((s) => s.id === activeScenarioId) || routeScenarios[0] || scenarios[0];
   const scoringGoal = activeScenario?.goal || goal;
   const score = useMemo(() => scoreAttempt(attempt, activeScenario, level, helpOpens, scoringGoal), [attempt, activeScenario, level, helpOpens, scoringGoal]);
-  const scoreLabels = getScoreLabels(scoringGoal, ui);
+  const scoreLabels = learnerType === "child"
+    ? (ui === "ru" ? ["Понимание", "Самостоятельность", "Ясность"] : ["Understanding", "Independence", "Clarity"])
+    : getScoreLabels(scoringGoal, ui);
   const metricOneValue = aiFeedback?.meaningScore ?? score.meaningScore;
   const metricTwoValue = scoringGoal === "authority" ? (aiFeedback?.positionScore ?? score.positionScore) : (aiFeedback?.vocabularyScore ?? score.vocabularyScore);
   const metricThreeValue = aiFeedback?.clarityScore ?? score.clarityScore;
@@ -916,6 +1061,7 @@ export default function LanguageGoalOS() {
     const row = {
       id: Date.now(),
       date: new Date().toLocaleString(),
+      learnerType,
       goal: scoringGoal,
       level,
       targetLang,
@@ -1083,6 +1229,13 @@ export default function LanguageGoalOS() {
   const completedSituations = Object.values(completedSituationMap);
   const completionLabel = ui === "ru" ? "Ситуаций уже можно пройти" : "Situations you can handle";
   const completedLabel = ui === "ru" ? "Засчитано как реальная ситуация" : "Counted as a real-life situation";
+  const isChildRoute = learnerType === "child";
+  const childMissionPhrases = [activeScenario.beginner, activeScenario.stronger, "I can say it myself."]
+    .filter((phrase, index, arr) => Boolean(phrase) && arr.indexOf(phrase) === index)
+    .slice(0, 3);
+  const childResultLabel = (aiFeedback?.totalScore ?? score.total) >= 70
+    ? (ui === "ru" ? "Получилось" : "Done")
+    : (ui === "ru" ? "Почти получилось" : "Almost there");
 
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-50">
@@ -1132,71 +1285,167 @@ export default function LanguageGoalOS() {
                     <Badge className="bg-orange-500 text-white hover:bg-orange-500">{ui === "ru" ? "Маршрут под цель" : "Goal route"}</Badge>
                     <HelpButton ui={ui} title={ui === "ru" ? "Зачем этот экран" : "Why this screen"} body={ui === "ru" ? "Это главный экран платформы. Он не про уроки. Он выясняет боль: зачем человеку нужен язык, какой язык он учит и с какого уровня начинает." : "This is the main platform screen. It identifies why the person needs the language, what language they learn, and their starting level."} />
                   </div>
-                  <h2 className="mb-2 text-3xl font-semibold">{t.goalQuestion}</h2>
-                  <p className="mb-6 text-neutral-300">{t.goalSubtitle}</p>
+                  <h2 className="mb-2 text-3xl font-semibold">{learnerType === "child" ? (ui === "ru" ? "Школьный английский" : "School English") : t.goalQuestion}</h2>
+                  <p className="mb-6 text-neutral-300">
+                    {learnerType === "child"
+                      ? (ui === "ru" ? "Отдельный beta-маршрут для ребёнка: летнее повторение, понятные объяснения и прогресс для родителя. Взрослый маршрут не меняется." : "A separate beta route for a child: summer review, simple explanations, and parent progress. The adult flow stays unchanged.")
+                      : t.goalSubtitle}
+                  </p>
 
-                  <SectionTitle icon={<Languages className="h-5 w-5" />} title={t.targetLanguage} />
-                  <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    {targetLanguages.map((lang) => (
-                      <button key={lang.id} onClick={() => setTargetLang(lang.id)} className={`rounded-2xl border p-4 text-left transition ${targetLang === lang.id ? "border-orange-400 bg-orange-500/15" : "border-neutral-800 bg-neutral-950 hover:border-neutral-700"}`}>
-                        <div className="text-lg font-semibold">{lang.flag} {ui === "ru" ? lang.ru : lang.en}</div>
-                      </button>
-                    ))}
+                  <SectionTitle icon={<Users className="h-5 w-5" />} title={ui === "ru" ? "Кто будет заниматься?" : "Who will study?"} />
+                  <div className="mb-6 grid gap-3 md:grid-cols-2">
+                    <button
+                      onClick={() => setLearnerType("adult")}
+                      className={`rounded-2xl border p-5 text-left transition ${learnerType === "adult" ? "border-orange-400 bg-orange-500/15" : "border-neutral-800 bg-neutral-950 hover:border-neutral-700"}`}
+                    >
+                      <h3 className="mb-2 text-xl font-semibold">{ui === "ru" ? "Взрослый" : "Adult"}</h3>
+                      <p className="text-neutral-400">{ui === "ru" ? "Работа, интервью, новая страна, живой разговор, профессиональная позиция." : "Work, interviews, new country, real conversation, professional authority."}</p>
+                    </button>
+                    <button
+                      onClick={() => { setLearnerType("child"); setTargetLang("en"); }}
+                      className={`rounded-2xl border p-5 text-left transition ${learnerType === "child" ? "border-orange-400 bg-orange-500/15" : "border-neutral-800 bg-neutral-950 hover:border-neutral-700"}`}
+                    >
+                      <h3 className="mb-2 text-xl font-semibold">{ui === "ru" ? "Ребёнок / школьник" : "Child / school student"}</h3>
+                      <p className="text-neutral-400">{ui === "ru" ? "Школьный английский: повторить тему, понять правило, сделать задание осознанно." : "School English: review a topic, understand the rule, and work independently."}</p>
+                    </button>
                   </div>
 
-                  <SectionTitle icon={<Map className="h-5 w-5" />} title={ui === "ru" ? "Выберите цель" : "Choose your goal"} />
-                  <div className="mb-6 grid gap-4 md:grid-cols-2">
-                    {goals.map((item) => (
-                      <button key={item.id} onClick={() => setGoal(item.id)} className={`rounded-2xl border p-5 text-left transition ${goal === item.id ? "border-orange-400 bg-orange-500/15" : "border-neutral-800 bg-neutral-950 hover:border-neutral-700"}`}>
-                        <h3 className="mb-2 text-xl font-semibold">{ui === "ru" ? item.ru : item.en}</h3>
-                        <p className="mb-3 text-neutral-400">{ui === "ru" ? item.descRu : item.descEn}</p>
-                        <p className="text-sm text-orange-300">{ui === "ru" ? item.promiseRu : item.promiseEn}</p>
-                      </button>
-                    ))}
-                  </div>
+                  {learnerType === "adult" ? (
+                    <>
+                      <SectionTitle icon={<Languages className="h-5 w-5" />} title={t.targetLanguage} />
+                      <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        {targetLanguages.map((lang) => (
+                          <button key={lang.id} onClick={() => setTargetLang(lang.id)} className={`rounded-2xl border p-4 text-left transition ${targetLang === lang.id ? "border-orange-400 bg-orange-500/15" : "border-neutral-800 bg-neutral-950 hover:border-neutral-700"}`}>
+                            <div className="text-lg font-semibold">{lang.flag} {ui === "ru" ? lang.ru : lang.en}</div>
+                          </button>
+                        ))}
+                      </div>
 
-                  <SectionTitle icon={<Brain className="h-5 w-5" />} title={t.levelQuestion} />
-                  <div className="mb-6 grid gap-3 md:grid-cols-4">
-                    {levels.map((item) => (
-                      <button key={item.id} onClick={() => setLevel(item.id)} className={`rounded-2xl border p-4 text-left transition ${level === item.id ? "border-orange-400 bg-orange-500/15" : "border-neutral-800 bg-neutral-950 hover:border-neutral-700"}`}>
-                        <div className="mb-2 font-semibold">{ui === "ru" ? item.ru : item.en}</div>
-                        <p className="text-sm text-neutral-400">{ui === "ru" ? item.descRu : item.descEn}</p>
-                      </button>
-                    ))}
-                  </div>
+                      <SectionTitle icon={<Map className="h-5 w-5" />} title={ui === "ru" ? "Выберите цель" : "Choose your goal"} />
+                      <div className="mb-6 grid gap-4 md:grid-cols-2">
+                        {goals.map((item) => (
+                          <button key={item.id} onClick={() => setGoal(item.id)} className={`rounded-2xl border p-5 text-left transition ${goal === item.id ? "border-orange-400 bg-orange-500/15" : "border-neutral-800 bg-neutral-950 hover:border-neutral-700"}`}>
+                            <h3 className="mb-2 text-xl font-semibold">{ui === "ru" ? item.ru : item.en}</h3>
+                            <p className="mb-3 text-neutral-400">{ui === "ru" ? item.descRu : item.descEn}</p>
+                            <p className="text-sm text-orange-300">{ui === "ru" ? item.promiseRu : item.promiseEn}</p>
+                          </button>
+                        ))}
+                      </div>
 
-                  <div className="mb-6 rounded-2xl border border-neutral-800 bg-neutral-950 p-5">
-                    <div className="mb-3 flex items-center gap-2 text-orange-300"><Brain className="h-5 w-5" /> <span className="font-semibold">{t.aiGenerator}</span></div>
-                    <label className="mb-2 block text-sm text-neutral-300">{t.mainFearLabel}</label>
-                    <Textarea
-                      value={mainFear}
-                      onChange={(e) => setMainFear(e.target.value)}
-                      placeholder={t.mainFearPlaceholder}
-                      className="mb-4 min-h-24 border-neutral-700 bg-neutral-950 text-neutral-50 placeholder:text-neutral-600"
-                    />
-                    <div className="flex flex-wrap gap-3">
-                      <Button onClick={generateAiRoute} disabled={isGeneratingRoute} className="bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-50">
-                        <Brain className="mr-2 h-4 w-4" />{isGeneratingRoute ? t.generatingRoute : t.generateRoute}
-                      </Button>
-                      {generatedRoute && <Badge className="bg-neutral-800 text-neutral-200 hover:bg-neutral-800">{t.generatedRoute}</Badge>}
-                    </div>
-                    {generatedRouteSource && (
-                      <p className="mt-3 text-sm text-neutral-400">{generatedRouteSource === "openai" ? t.routeSourceOpenAI : t.routeSourceFallback}</p>
-                    )}
-                    {routeGenerationError && <p className="mt-3 text-sm text-orange-300">{routeGenerationError}</p>}
-                  </div>
+                      <SectionTitle icon={<Brain className="h-5 w-5" />} title={t.levelQuestion} />
+                      <div className="mb-6 grid gap-3 md:grid-cols-4">
+                        {levels.map((item) => (
+                          <button key={item.id} onClick={() => setLevel(item.id)} className={`rounded-2xl border p-4 text-left transition ${level === item.id ? "border-orange-400 bg-orange-500/15" : "border-neutral-800 bg-neutral-950 hover:border-neutral-700"}`}>
+                            <div className="mb-2 font-semibold">{ui === "ru" ? item.ru : item.en}</div>
+                            <p className="text-sm text-neutral-400">{ui === "ru" ? item.descRu : item.descEn}</p>
+                          </button>
+                        ))}
+                      </div>
 
-                  <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5">
-                    <div className="mb-3 text-neutral-300">{t.selected}: <b>{selectedLang.flag} {ui === "ru" ? selectedLang.ru : selectedLang.en}</b> · <b>{ui === "ru" ? selectedGoal.ru : selectedGoal.en}</b> · <b>{levels.find((l) => l.id === level)?.[ui === "ru" ? "ru" : "en"]}</b></div>
-                    {!generatedRoute && targetLang !== "en" && (
-                      <div className="mb-4 rounded-xl border border-orange-500/30 bg-orange-500/10 p-4 text-sm text-orange-100">{t.aiLater}</div>
-                    )}
-                    <Button onClick={startRoute} className="w-full bg-orange-500 text-white hover:bg-orange-600 md:w-auto"><Play className="mr-2 h-4 w-4" />{t.startRoute}</Button>
-                  </div>
+                      <div className="mb-6 rounded-2xl border border-neutral-800 bg-neutral-950 p-5">
+                        <div className="mb-3 flex items-center gap-2 text-orange-300"><Brain className="h-5 w-5" /> <span className="font-semibold">{t.aiGenerator}</span></div>
+                        <label className="mb-2 block text-sm text-neutral-300">{t.mainFearLabel}</label>
+                        <Textarea
+                          value={mainFear}
+                          onChange={(e) => setMainFear(e.target.value)}
+                          placeholder={t.mainFearPlaceholder}
+                          className="mb-4 min-h-24 border-neutral-700 bg-neutral-950 text-neutral-50 placeholder:text-neutral-600"
+                        />
+                        <div className="flex flex-wrap gap-3">
+                          <Button onClick={generateAiRoute} disabled={isGeneratingRoute} className="bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-50">
+                            <Brain className="mr-2 h-4 w-4" />{isGeneratingRoute ? t.generatingRoute : t.generateRoute}
+                          </Button>
+                          {generatedRoute && <Badge className="bg-neutral-800 text-neutral-200 hover:bg-neutral-800">{t.generatedRoute}</Badge>}
+                        </div>
+                        {generatedRouteSource && (
+                          <p className="mt-3 text-sm text-neutral-400">{generatedRouteSource === "openai" ? t.routeSourceOpenAI : t.routeSourceFallback}</p>
+                        )}
+                        {routeGenerationError && <p className="mt-3 text-sm text-orange-300">{routeGenerationError}</p>}
+                      </div>
+
+                      <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5">
+                        <div className="mb-3 text-neutral-300">{t.selected}: <b>{selectedLang.flag} {ui === "ru" ? selectedLang.ru : selectedLang.en}</b> · <b>{ui === "ru" ? selectedGoal.ru : selectedGoal.en}</b> · <b>{levels.find((l) => l.id === level)?.[ui === "ru" ? "ru" : "en"]}</b></div>
+                        {!generatedRoute && targetLang !== "en" && (
+                          <div className="mb-4 rounded-xl border border-orange-500/30 bg-orange-500/10 p-4 text-sm text-orange-100">{t.aiLater}</div>
+                        )}
+                        <Button onClick={startRoute} className="w-full bg-orange-500 text-white hover:bg-orange-600 md:w-auto"><Play className="mr-2 h-4 w-4" />{t.startRoute}</Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="mb-6 rounded-2xl border border-orange-500/30 bg-orange-500/10 p-5">
+                        <div className="mb-2 text-sm font-semibold text-orange-300">{ui === "ru" ? "Летняя beta-логика" : "Summer beta logic"}</div>
+                        <p className="text-neutral-100">
+                          {ui === "ru"
+                            ? "Сейчас каникулы, поэтому школьный маршрут подаём не как домашку, а как мягкое повторение: 10 минут в день, одна тема, одна попытка, понятный вывод для родителя."
+                            : "During summer, the school route is positioned as soft review: 10 minutes a day, one topic, one attempt, and a clear parent summary."}
+                        </p>
+                      </div>
+
+                      <SectionTitle icon={<BookOpen className="h-5 w-5" />} title={ui === "ru" ? "Класс ребёнка" : "Child grade"} />
+                      <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        {schoolGrades.map((item) => (
+                          <button key={item.id} onClick={() => setSchoolGrade(item.id)} className={`rounded-2xl border p-4 text-left transition ${schoolGrade === item.id ? "border-orange-400 bg-orange-500/15" : "border-neutral-800 bg-neutral-950 hover:border-neutral-700"}`}>
+                            <div className="mb-2 text-lg font-semibold">{item.label}</div>
+                            <p className="text-sm text-neutral-400">{ui === "ru" ? item.noteRu : item.noteEn}</p>
+                          </button>
+                        ))}
+                      </div>
+
+                      <SectionTitle icon={<BookOpen className="h-5 w-5" />} title={ui === "ru" ? "Учебник / УМК" : "Textbook line"} />
+                      <div className="mb-6 grid gap-3 md:grid-cols-2">
+                        {textbookLines.map((item) => (
+                          <button key={item.id} onClick={() => setTextbookLine(item.id)} className={`rounded-2xl border p-4 text-left transition ${textbookLine === item.id ? "border-orange-400 bg-orange-500/15" : "border-neutral-800 bg-neutral-950 hover:border-neutral-700"}`}>
+                            <div className="font-semibold">{ui === "ru" ? item.ru : item.en}</div>
+                          </button>
+                        ))}
+                      </div>
+
+                      <SectionTitle icon={<Brain className="h-5 w-5" />} title={ui === "ru" ? "Что нужно сейчас?" : "What do you need now?"} />
+                      <div className="mb-6 grid gap-3 md:grid-cols-2">
+                        {schoolModes.map((item) => (
+                          <button key={item.id} onClick={() => setSchoolMode(item.id)} className={`rounded-2xl border p-5 text-left transition ${schoolMode === item.id ? "border-orange-400 bg-orange-500/15" : "border-neutral-800 bg-neutral-950 hover:border-neutral-700"}`}>
+                            <h3 className="mb-2 font-semibold">{ui === "ru" ? item.ru : item.en}</h3>
+                            <p className="text-sm text-neutral-400">{ui === "ru" ? item.descRu : item.descEn}</p>
+                          </button>
+                        ))}
+                      </div>
+
+                      <SectionTitle icon={<Brain className="h-5 w-5" />} title={ui === "ru" ? "Стартовый уровень ребёнка" : "Child starting level"} />
+                      <div className="mb-6 grid gap-3 md:grid-cols-4">
+                        {levels.map((item) => (
+                          <button key={item.id} onClick={() => setLevel(item.id)} className={`rounded-2xl border p-4 text-left transition ${level === item.id ? "border-orange-400 bg-orange-500/15" : "border-neutral-800 bg-neutral-950 hover:border-neutral-700"}`}>
+                            <div className="mb-2 font-semibold">{ui === "ru" ? item.ru : item.en}</div>
+                            <p className="text-sm text-neutral-400">{ui === "ru" ? item.descRu : item.descEn}</p>
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="mb-6 rounded-2xl border border-neutral-800 bg-neutral-950 p-5">
+                        <label className="mb-2 block text-sm text-neutral-300">{ui === "ru" ? "Какая тема или сложность сейчас важна?" : "Which topic or difficulty matters now?"}</label>
+                        <Textarea
+                          value={schoolTopic}
+                          onChange={(e) => setSchoolTopic(e.target.value)}
+                          placeholder={ui === "ru" ? "Например: Present Simple, чтение, слова по модулю, вопросы" : "For example: Present Simple, reading, module vocabulary, questions"}
+                          className="min-h-24 border-neutral-700 bg-neutral-950 text-neutral-50 placeholder:text-neutral-600"
+                        />
+                      </div>
+
+                      <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5">
+                        <div className="mb-3 text-neutral-300">
+                          {t.selected}: <b>{selectedSchoolGrade.label}</b> · <b>{ui === "ru" ? selectedTextbook.ru : selectedTextbook.en}</b> · <b>{ui === "ru" ? selectedSchoolMode.ru : selectedSchoolMode.en}</b>
+                        </div>
+                        <div className="mb-4 rounded-xl border border-neutral-800 bg-neutral-900 p-4 text-sm text-neutral-300">
+                          {ui === "ru" ? "Важно: это не решебник. Платформа объясняет и ведёт ребёнка к самостоятельному ответу." : "Important: this is not an answer key. The platform explains and guides the child toward independent work."}
+                        </div>
+                        <Button onClick={startRoute} className="w-full bg-orange-500 text-white hover:bg-orange-600 md:w-auto"><Play className="mr-2 h-4 w-4" />{ui === "ru" ? "Начать школьный маршрут" : "Start school route"}</Button>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
 
-              <DailyPlanCard ui={ui} goal={selectedGoal} t={t} scenario={activeScenario} />
+              <DailyPlanCard ui={ui} goal={displayGoal} t={t} scenario={activeScenario} />
             </div>
           </TabsContent>
 
@@ -1218,6 +1467,49 @@ export default function LanguageGoalOS() {
                     <p className="mt-2 text-neutral-400">{activeScenario.beginnerRu}</p>
                     <PronunciationHelp ui={ui} text={activeScenario.readRu} onOpen={() => setHelpOpens((v) => v + 1)} />
                   </div>
+
+                  {isChildRoute && (
+                    <div className="mt-5 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5">
+                      <div className="mb-3 flex items-center justify-between gap-3">
+                        <div>
+                          <div className="mb-1 text-sm font-medium text-amber-300">{ui === "ru" ? "Голосовая мини-миссия" : "Voice mini-mission"}</div>
+                          <h3 className="text-xl font-semibold text-neutral-100">{ui === "ru" ? "Скажи 3 фразы голосом" : "Say 3 phrases aloud"}</h3>
+                        </div>
+                        <Badge variant="outline" className="border-amber-500/40 text-amber-200">5 min</Badge>
+                      </div>
+                      <p className="mb-4 text-sm leading-relaxed text-neutral-300">
+                        {ui === "ru"
+                          ? "Для ребёнка это не тест. Это короткая миссия: послушать, повторить, попробовать самому и получить мягкий фидбек."
+                          : "For a child, this is not a test. It is a short mission: listen, repeat, try alone, and get soft feedback."}
+                      </p>
+                      <div className="grid gap-3 md:grid-cols-3">
+                        {childMissionPhrases.map((phrase, index) => (
+                          <div key={phrase} className="rounded-2xl border border-neutral-800 bg-neutral-950 p-4">
+                            <div className="mb-2 text-xs font-semibold uppercase tracking-widest text-amber-300">
+                              {ui === "ru" ? `Фраза ${index + 1}` : `Phrase ${index + 1}`}
+                            </div>
+                            <p className="mb-3 text-neutral-100">{phrase}</p>
+                            <div className="flex flex-wrap gap-2">
+                              <Button size="sm" onClick={() => speak(phrase, true)} variant="outline" className="border-neutral-700 bg-transparent text-neutral-100 hover:bg-neutral-800">
+                                <Volume2 className="mr-2 h-4 w-4" />{ui === "ru" ? "Послушать" : "Listen"}
+                              </Button>
+                              {index === 0 && (
+                                <Button size="sm" onClick={startRecording} disabled={isRecording} className="bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-50">
+                                  <Mic className="mr-2 h-4 w-4" />{ui === "ru" ? "Повторить" : "Repeat"}
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-4 rounded-xl border border-neutral-800 bg-neutral-950 p-4 text-sm text-neutral-300">
+                        {ui === "ru"
+                          ? "Детский режим: сначала важен смысл и смелость сказать вслух. Идеальное произношение — не цель первого шага."
+                          : "Child mode: meaning and courage to speak come first. Perfect pronunciation is not the first goal."}
+                      </div>
+                    </div>
+                  )}
+
                   <InfoBlock label={t.principle} text={ui === "ru" ? activeScenario.principleRu : activeScenario.principleEn} orange />
                   <div className="mt-5 text-sm text-neutral-400">{t.whySimple}</div>
                 </CardContent>
@@ -1225,8 +1517,22 @@ export default function LanguageGoalOS() {
 
               <Card className="border-neutral-800 bg-neutral-900 text-neutral-50">
                 <CardContent className="p-6">
-                  <div className="mb-4 flex items-center gap-3"><Mic className="h-5 w-5 text-orange-400" /><h2 className="text-2xl font-semibold">{t.voiceMode}</h2></div>
-                  <p className="mb-4 text-neutral-400">{t.typeManual}</p>
+                  <div className="mb-4 flex items-center gap-3"><Mic className="h-5 w-5 text-orange-400" /><h2 className="text-2xl font-semibold">{isChildRoute ? (ui === "ru" ? "Говорим голосом" : "Voice mission") : t.voiceMode}</h2></div>
+                  <p className="mb-4 text-neutral-400">
+                    {isChildRoute
+                      ? (ui === "ru" ? "Ребёнок может просто сказать ответ голосом. Если микрофон не сработал, взрослый может вписать фразу вручную." : "The child can simply say the answer aloud. If the microphone fails, an adult can type the phrase manually.")
+                      : t.typeManual}
+                  </p>
+                  {isChildRoute && (
+                    <div className="mb-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+                      <div className="mb-2 text-sm font-medium text-emerald-300">{ui === "ru" ? "Мягкий детский фидбек" : "Soft child feedback"}</div>
+                      <p className="text-sm leading-relaxed text-neutral-200">
+                        {ui === "ru"
+                          ? "После проверки ребёнок увидит не строгую оценку, а понятный результат: получилось, почти получилось или давай повторим. Подробный вывод нужен родителю."
+                          : "After analysis, the child sees a soft result: done, almost there, or let’s repeat. Detailed insight is for the parent."}
+                      </p>
+                    </div>
+                  )}
                   <Textarea value={attempt} onChange={(e) => setAttempt(e.target.value)} placeholder={ui === "ru" ? "Здесь появится расшифровка или ручной ввод..." : "Transcript or manual input appears here..."} className="min-h-36 border-neutral-700 bg-neutral-950 text-neutral-50 placeholder:text-neutral-600" />
                   <div className="mt-4 rounded-2xl border border-neutral-800 bg-neutral-950 p-4">
                     <p className="mb-4 text-sm text-neutral-500">{recordingStatus}</p>
@@ -1244,6 +1550,17 @@ export default function LanguageGoalOS() {
                   {showFeedback && (
                     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-6 space-y-4">
                       {isAnalyzingAttempt && <div className="rounded-2xl border border-orange-500/30 bg-orange-500/10 p-4 text-orange-100">{t.aiAnalyzing}</div>}
+                      {isChildRoute && (
+                        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5">
+                          <div className="mb-2 text-sm font-medium text-amber-300">{ui === "ru" ? "Результат для ребёнка" : "Result for the child"}</div>
+                          <h3 className="text-3xl font-semibold text-neutral-100">{childResultLabel}</h3>
+                          <p className="mt-3 text-neutral-300">
+                            {ui === "ru"
+                              ? "Если смысл передан — это уже успех. Повтори фразу ещё раз медленно и попробуй сказать без подсказки."
+                              : "If the meaning is clear, it is already a win. Repeat the phrase slowly and try without looking."}
+                          </p>
+                        </div>
+                      )}
                       <div className="grid gap-3 md:grid-cols-4">
                         <Score label={t.total} value={aiFeedback?.totalScore ?? score.total} />
                         <Score label={scoreLabels[0]} value={metricOneValue} />
@@ -1280,6 +1597,16 @@ export default function LanguageGoalOS() {
                           <div className="mt-4 rounded-xl border border-neutral-800 bg-neutral-900 p-4">
                             <div className="mb-2 text-sm text-orange-300">{t.repeatPhrases}</div>
                             <ul className="space-y-1 text-sm text-neutral-200">{aiFeedback.keyPhrasesToRepeat.map((phrase) => <li key={phrase}>• {phrase}</li>)}</ul>
+                          </div>
+                        )}
+                        {isChildRoute && (
+                          <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+                            <div className="mb-2 text-sm text-emerald-300">{ui === "ru" ? "Вывод для родителя" : "Parent summary"}</div>
+                            <p className="text-neutral-100">
+                              {ui === "ru"
+                                ? `Сегодня ребёнок потренировал тему: ${activeScenario.titleRu}. Попытка: ${childResultLabel}. Повторить завтра: ${activeScenario.beginner}.`
+                                : `Today the child practiced: ${activeScenario.titleEn}. Attempt: ${childResultLabel}. Repeat tomorrow: ${activeScenario.beginner}.`}
+                            </p>
                           </div>
                         )}
                       </div>
