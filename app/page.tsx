@@ -35,6 +35,18 @@ type LearnerType = "adult" | "child";
 type SchoolGrade = "3" | "4" | "5" | "6" | "7";
 type TextbookLine = "spotlight" | "rainbow" | "forward" | "other";
 type SchoolMode = "summer-review" | "explain-topic" | "help-homework" | "check-answer";
+type AccessPlan = "beta" | "paid" | "admin";
+type AccessRoute = GoalId | "school" | "all";
+type AccessState = {
+  enabled: boolean;
+  code: string;
+  plan: AccessPlan;
+  routes: AccessRoute[];
+  name: string;
+  contact: string;
+  expiresAt: string;
+  createdAt: string;
+};
 
 type Scenario = {
   id: string;
@@ -471,6 +483,45 @@ const schoolModes: { id: SchoolMode; ru: string; en: string; descRu: string; des
   { id: "help-homework", ru: "Помочь с заданием", en: "Help with homework", descRu: "не готовый ответ, а шаги к самостоятельному решению", descEn: "steps toward independent work" },
   { id: "check-answer", ru: "Проверить ответ", en: "Check my answer", descRu: "объяснить ошибку и что повторить", descEn: "explain the mistake and what to repeat" },
 ];
+
+
+const defaultAccessState: AccessState = {
+  enabled: false,
+  code: "",
+  plan: "beta",
+  routes: [],
+  name: "",
+  contact: "",
+  expiresAt: "",
+  createdAt: "",
+};
+
+const betaAccessCodes: Record<string, { plan: AccessPlan; routes: AccessRoute[]; days: number; labelRu: string; labelEn: string }> = {
+  "SCHOOL-BETA-001": { plan: "beta", routes: ["school"], days: 14, labelRu: "Школьный beta-доступ", labelEn: "School beta access" },
+  "WORK-BETA-001": { plan: "beta", routes: ["job"], days: 30, labelRu: "Работа и интервью · beta", labelEn: "Work and interview · beta" },
+  "COUNTRY-BETA-001": { plan: "beta", routes: ["new-country"], days: 30, labelRu: "Новая страна · beta", labelEn: "New country · beta" },
+  "TALK-BETA-001": { plan: "beta", routes: ["conversation"], days: 30, labelRu: "Живой разговор · beta", labelEn: "Conversation · beta" },
+  "PRO-BETA-001": { plan: "beta", routes: ["authority"], days: 30, labelRu: "Профессиональная позиция · beta", labelEn: "Professional authority · beta" },
+  "ALL-BETA-001": { plan: "beta", routes: ["all"], days: 30, labelRu: "Все beta-маршруты", labelEn: "All beta routes" },
+  "SCHOOL-PAID-001": { plan: "paid", routes: ["school"], days: 30, labelRu: "Школьный оплаченный доступ", labelEn: "School paid access" },
+  "WORK-PAID-001": { plan: "paid", routes: ["job"], days: 30, labelRu: "Работа и интервью · оплачено", labelEn: "Work and interview · paid" },
+};
+
+function resolveAccessCode(rawCode: string) {
+  const code = rawCode.trim().toUpperCase();
+  const preset = betaAccessCodes[code];
+  if (!preset) return null;
+  const expires = new Date();
+  expires.setDate(expires.getDate() + preset.days);
+  return { code, preset, expiresAt: expires.toISOString() };
+}
+
+function routeNameForAccess(route: AccessRoute, ui: UI) {
+  if (route === "all") return ui === "ru" ? "все маршруты" : "all routes";
+  if (route === "school") return ui === "ru" ? "школьный английский" : "school English";
+  const found = goals.find((item) => item.id === route);
+  return found ? (ui === "ru" ? found.ru : found.en) : route;
+}
 
 const schoolScenarios: Scenario[] = [
   {
@@ -971,6 +1022,9 @@ export default function LanguageGoalOS() {
   const [isAnalyzingAttempt, setIsAnalyzingAttempt] = useState(false);
   const [clientKey, setClientKey] = useLocalStorage<string>("lgos_client_key", "");
   const [syncStatus, setSyncStatus] = useState("");
+  const [accessState, setAccessState] = useLocalStorage<AccessState>("lgos_access_state", defaultAccessState);
+  const [betaFeedbackText, setBetaFeedbackText] = useLocalStorage<string>("lgos_beta_feedback_text", "");
+  const [betaFeedbackSent, setBetaFeedbackSent] = useLocalStorage<boolean>("lgos_beta_feedback_sent", false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingStatus, setRecordingStatus] = useState(uiText[ui].statusReady);
   const recognitionRef = useRef<any>(null);
@@ -978,6 +1032,15 @@ export default function LanguageGoalOS() {
   const supabaseClient = useMemo(() => createSupabaseBrowserClient(), []);
 
   const t = uiText[ui];
+  const accessExpired = Boolean(accessState.enabled && accessState.expiresAt && new Date(accessState.expiresAt).getTime() < Date.now());
+  const accessActive = Boolean(accessState.enabled && !accessExpired);
+  const hasAllAccess = accessState.routes.includes("all");
+  const canUseChild = hasAllAccess || accessState.routes.includes("school");
+  const allowedAdultGoals = hasAllAccess ? goals : goals.filter((item) => accessState.routes.includes(item.id));
+  const canUseAdult = hasAllAccess || allowedAdultGoals.length > 0;
+  const accessLabel = accessState.enabled
+    ? `${accessState.plan === "paid" ? (ui === "ru" ? "Оплачен" : "Paid") : ui === "ru" ? "Beta" : "Beta"}: ${accessState.routes.map((route) => routeNameForAccess(route, ui)).join(", ")}`
+    : ui === "ru" ? "Доступ не активирован" : "Access not activated";
   const selectedGoal = goals.find((g) => g.id === goal)!;
   const routeTheme = getRouteTheme(learnerType, goal);
   const selectedLang = targetLanguages.find((l) => l.id === targetLang)!;
@@ -999,6 +1062,24 @@ export default function LanguageGoalOS() {
     const first = routeScenarios[0]?.id;
     if (first && !routeScenarios.some((s) => s.id === activeScenarioId)) setActiveScenarioId(first);
   }, [routeScenarios, activeScenarioId]);
+
+  useEffect(() => {
+    if (!accessActive) return;
+    if (!canUseAdult && canUseChild && learnerType !== "child") {
+      setLearnerType("child");
+      setGoal("parent-child");
+      setTargetLang("en");
+      return;
+    }
+    if (!canUseChild && canUseAdult && learnerType !== "adult") {
+      setLearnerType("adult");
+      const firstGoal = allowedAdultGoals[0]?.id || "job";
+      setGoal(firstGoal);
+    }
+    if (learnerType === "adult" && !hasAllAccess && allowedAdultGoals.length > 0 && !allowedAdultGoals.some((item) => item.id === goal)) {
+      setGoal(allowedAdultGoals[0].id);
+    }
+  }, [accessActive, canUseAdult, canUseChild, learnerType, goal, hasAllAccess, allowedAdultGoals, setLearnerType, setGoal, setTargetLang]);
 
   useEffect(() => setRecordingStatus(uiText[ui].statusReady), [ui]);
 
@@ -1372,6 +1453,31 @@ export default function LanguageGoalOS() {
           ? (ui === "ru" ? "Ничего страшного. Послушай фразу и попробуй ещё раз." : "That is okay. Listen to the phrase and try again.")
           : (ui === "ru" ? "Привет, я Lingua Buddy. Сначала послушай фразу, потом повтори голосом." : "Hi, I am Lingua Buddy. First listen to the phrase, then repeat it aloud.");
 
+  if (!accessActive) {
+    return (
+      <AccessGate
+        ui={ui}
+        onUiChange={setUi}
+        expired={accessExpired}
+        previousCode={accessState.code}
+        onUnlock={(nextAccess) => {
+          setAccessState(nextAccess);
+          setBetaFeedbackSent(false);
+          setBetaFeedbackText("");
+          if (nextAccess.routes.includes("school") && !nextAccess.routes.includes("all")) {
+            setLearnerType("child");
+            setGoal("parent-child");
+            setTargetLang("en");
+          } else {
+            setLearnerType("adult");
+            const firstRoute = nextAccess.routes.find((route) => route !== "all" && route !== "school") as GoalId | undefined;
+            setGoal(firstRoute || "job");
+          }
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-50">
       <div className="mx-auto max-w-7xl px-4 py-6 md:px-8">
@@ -1389,6 +1495,12 @@ export default function LanguageGoalOS() {
               <Badge variant="outline" className="border-neutral-700 text-neutral-300">
                 {supabaseClient ? t.syncOn : t.syncOff}{syncStatus && ` · ${syncStatus}`}
               </Badge>
+              <Badge variant="outline" className={`${routeTheme.border} ${routeTheme.text}`}>
+                {accessLabel}
+              </Badge>
+              <Button size="sm" variant="outline" className="border-neutral-700 bg-transparent text-neutral-100 hover:bg-neutral-800" onClick={() => setAccessState(defaultAccessState)}>
+                {ui === "ru" ? "Сменить доступ" : "Change access"}
+              </Button>
             </div>
           </div>
           <Card className={`relative overflow-hidden border-neutral-800 bg-neutral-900 text-neutral-50 ${routeTheme.border}`}>
@@ -1441,15 +1553,17 @@ export default function LanguageGoalOS() {
                   <SectionTitle icon={<Users className="h-5 w-5" />} title={ui === "ru" ? "Кто будет заниматься?" : "Who will study?"} />
                   <div className="mb-6 grid gap-3 md:grid-cols-2">
                     <button
-                      onClick={() => setLearnerType("adult")}
-                      className={`rounded-2xl border p-5 text-left transition ${learnerType === "adult" ? "border-orange-400 bg-orange-500/15" : "border-neutral-800 bg-neutral-950 hover:border-neutral-700"}`}
+                      disabled={!canUseAdult}
+                      onClick={() => canUseAdult && setLearnerType("adult")}
+                      className={`rounded-2xl border p-5 text-left transition ${!canUseAdult ? "cursor-not-allowed border-neutral-900 bg-neutral-950 opacity-40" : learnerType === "adult" ? "border-orange-400 bg-orange-500/15" : "border-neutral-800 bg-neutral-950 hover:border-neutral-700"}`}
                     >
                       <h3 className="mb-2 text-xl font-semibold">{ui === "ru" ? "Взрослый" : "Adult"}</h3>
                       <p className="text-neutral-400">{ui === "ru" ? "Работа, интервью, новая страна, живой разговор, профессиональная позиция." : "Work, interviews, new country, real conversation, professional authority."}</p>
                     </button>
                     <button
-                      onClick={() => { setLearnerType("child"); setTargetLang("en"); }}
-                      className={`rounded-2xl border p-5 text-left transition ${learnerType === "child" ? "border-orange-400 bg-orange-500/15" : "border-neutral-800 bg-neutral-950 hover:border-neutral-700"}`}
+                      disabled={!canUseChild}
+                      onClick={() => { if (!canUseChild) return; setLearnerType("child"); setTargetLang("en"); setGoal("parent-child"); }}
+                      className={`rounded-2xl border p-5 text-left transition ${!canUseChild ? "cursor-not-allowed border-neutral-900 bg-neutral-950 opacity-40" : learnerType === "child" ? "border-orange-400 bg-orange-500/15" : "border-neutral-800 bg-neutral-950 hover:border-neutral-700"}`}
                     >
                       <h3 className="mb-2 text-xl font-semibold">{ui === "ru" ? "Ребёнок / школьник" : "Child / school student"}</h3>
                       <p className="text-neutral-400">{ui === "ru" ? "Школьный английский: повторить тему, понять правило, сделать задание осознанно." : "School English: review a topic, understand the rule, and work independently."}</p>
@@ -1469,7 +1583,7 @@ export default function LanguageGoalOS() {
 
                       <SectionTitle icon={<Map className="h-5 w-5" />} title={ui === "ru" ? "Выберите цель" : "Choose your goal"} />
                       <div className="mb-6 grid gap-4 md:grid-cols-2">
-                        {goals.map((item) => (
+                        {allowedAdultGoals.map((item) => (
                           <button key={item.id} onClick={() => setGoal(item.id)} className={`rounded-2xl border p-5 text-left transition ${goal === item.id ? "border-orange-400 bg-orange-500/15" : "border-neutral-800 bg-neutral-950 hover:border-neutral-700"}`}>
                             <h3 className="mb-2 text-xl font-semibold">{ui === "ru" ? item.ru : item.en}</h3>
                             <p className="mb-3 text-neutral-400">{ui === "ru" ? item.descRu : item.descEn}</p>
@@ -1874,11 +1988,125 @@ export default function LanguageGoalOS() {
                   </ul>
                 </div>
               )}
+              {attempts.length >= 3 && (
+                <BetaFeedbackPanel
+                  ui={ui}
+                  sent={betaFeedbackSent}
+                  value={betaFeedbackText}
+                  onChange={setBetaFeedbackText}
+                  onSend={() => setBetaFeedbackSent(true)}
+                />
+              )}
               {attempts.length === 0 ? <p className="text-neutral-400">{t.noAttempts}</p> : <div className="space-y-4">{attempts.map((item) => <div key={item.id} className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5"><div className="mb-2 flex items-center justify-between gap-3"><h3 className="font-semibold text-neutral-100">{item.scenarioTitle}</h3><Badge className={(Number(item.total) || 0) >= 70 ? "bg-orange-500 hover:bg-orange-500" : "bg-neutral-700 hover:bg-neutral-700"}>{(Number(item.total) || 0) >= 70 ? `${completedLabel} · ` : ""}{item.total}/100</Badge></div><p className="mb-2 text-sm text-neutral-500">{item.date}</p><p className="text-neutral-300">{item.answer}</p></div>)}</div>}
             </CardContent></Card>
           </TabsContent>
         </Tabs>
       </div>
+    </div>
+  );
+}
+
+
+function AccessGate({ ui, onUiChange, onUnlock, expired, previousCode }: { ui: UI; onUiChange: (ui: UI) => void; onUnlock: (access: AccessState) => void; expired: boolean; previousCode: string }) {
+  const [name, setName] = useState("");
+  const [contact, setContact] = useState("");
+  const [code, setCode] = useState("");
+  const [error, setError] = useState("");
+
+  const activate = () => {
+    const resolved = resolveAccessCode(code);
+    if (!resolved) {
+      setError(ui === "ru" ? "Код не найден. Проверьте код или запросите beta-доступ через сайт." : "Code not found. Check the code or request beta access through the website.");
+      return;
+    }
+    onUnlock({
+      enabled: true,
+      code: resolved.code,
+      plan: resolved.preset.plan,
+      routes: resolved.preset.routes,
+      name: name.trim(),
+      contact: contact.trim(),
+      expiresAt: resolved.expiresAt,
+      createdAt: new Date().toISOString(),
+    });
+  };
+
+  return (
+    <div className="min-h-screen bg-neutral-950 text-neutral-50">
+      <div className="mx-auto grid min-h-screen max-w-6xl items-center gap-8 px-4 py-8 md:grid-cols-[1.05fr_0.95fr] md:px-8">
+        <div>
+          <Badge className="mb-4 bg-orange-500 text-white hover:bg-orange-500">Managed Beta Product</Badge>
+          <h1 className="text-4xl font-semibold tracking-tight md:text-6xl">Language Goal OS</h1>
+          <p className="mt-5 max-w-2xl text-lg leading-relaxed text-neutral-300">
+            {ui === "ru"
+              ? "Вход открыт по beta-коду или оплаченному доступу. Так мы связываем заявку, маршрут, тест, feedback и решение о монетизации."
+              : "Access is opened by beta code or paid access. This connects application, route, testing, feedback, and monetization decision."}
+          </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Button size="sm" variant={ui === "ru" ? "default" : "outline"} className={ui === "ru" ? "bg-orange-500 hover:bg-orange-600" : "border-neutral-700 bg-transparent text-neutral-100"} onClick={() => onUiChange("ru")}>RU / РФ</Button>
+            <Button size="sm" variant={ui === "en" ? "default" : "outline"} className={ui === "en" ? "bg-orange-500 hover:bg-orange-600" : "border-neutral-700 bg-transparent text-neutral-100"} onClick={() => onUiChange("en")}>EN</Button>
+          </div>
+          <div className="mt-8 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-4"><div className="text-sm text-neutral-500">1</div><div className="mt-1 font-semibold">{ui === "ru" ? "Заявка" : "Application"}</div></div>
+            <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-4"><div className="text-sm text-neutral-500">2</div><div className="mt-1 font-semibold">{ui === "ru" ? "Beta-код" : "Beta code"}</div></div>
+            <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-4"><div className="text-sm text-neutral-500">3</div><div className="mt-1 font-semibold">{ui === "ru" ? "Маршрут + feedback" : "Route + feedback"}</div></div>
+          </div>
+        </div>
+
+        <Card className="border-neutral-800 bg-neutral-900 text-neutral-50 shadow-2xl">
+          <CardContent className="p-6 md:p-8">
+            <div className="mb-5 flex items-center gap-3">
+              <ShieldCheck className="h-6 w-6 text-orange-400" />
+              <div>
+                <h2 className="text-2xl font-semibold">{ui === "ru" ? "Активировать доступ" : "Activate access"}</h2>
+                <p className="text-sm text-neutral-400">{ui === "ru" ? "Введите код, который выдали после заявки или оплаты." : "Enter the code issued after application or payment."}</p>
+              </div>
+            </div>
+            {expired && (
+              <div className="mb-4 rounded-2xl border border-orange-500/30 bg-orange-500/10 p-4 text-sm text-orange-100">
+                {ui === "ru" ? `Доступ по коду ${previousCode} закончился. Введите новый код.` : `Access for code ${previousCode} has expired. Enter a new code.`}
+              </div>
+            )}
+            <div className="space-y-3">
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder={ui === "ru" ? "Имя" : "Name"} className="w-full rounded-2xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-50 outline-none placeholder:text-neutral-600 focus:border-orange-500" />
+              <input value={contact} onChange={(e) => setContact(e.target.value)} placeholder={ui === "ru" ? "Email или Telegram" : "Email or Telegram"} className="w-full rounded-2xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-neutral-50 outline-none placeholder:text-neutral-600 focus:border-orange-500" />
+              <input value={code} onChange={(e) => { setCode(e.target.value.toUpperCase()); setError(""); }} placeholder="SCHOOL-BETA-001" className="w-full rounded-2xl border border-neutral-700 bg-neutral-950 px-4 py-3 font-mono text-neutral-50 outline-none placeholder:text-neutral-600 focus:border-orange-500" />
+              {error && <p className="text-sm text-orange-300">{error}</p>}
+              <Button onClick={activate} className="w-full bg-orange-500 py-6 text-base font-semibold text-white hover:bg-orange-600">
+                {ui === "ru" ? "Открыть маршрут" : "Open route"}
+              </Button>
+            </div>
+            <div className="mt-6 rounded-2xl border border-neutral-800 bg-neutral-950 p-4 text-sm leading-relaxed text-neutral-400">
+              {ui === "ru"
+                ? "Для бесплатного beta-теста код выдаётся вручную после заявки. Для платного запуска этот экран будет открываться автоматически после оплаты."
+                : "For free beta, the code is issued manually after application. For paid launch, this screen will open automatically after payment."}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function BetaFeedbackPanel({ ui, sent, value, onChange, onSend }: { ui: UI; sent: boolean; value: string; onChange: (value: string) => void; onSend: () => void }) {
+  if (sent) {
+    return (
+      <div className="mb-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-5">
+        <div className="mb-2 font-semibold text-emerald-300">{ui === "ru" ? "Feedback сохранён" : "Feedback saved"}</div>
+        <p className="text-neutral-300">{ui === "ru" ? "В beta-версии это локальная фиксация. Для публичного теста подключим Make → Google Sheets → Telegram." : "In beta this is stored locally. For public testing we will connect Make → Google Sheets → Telegram."}</p>
+      </div>
+    );
+  }
+  return (
+    <div className="mb-6 rounded-2xl border border-orange-500/30 bg-orange-500/10 p-5">
+      <div className="mb-2 font-semibold text-orange-300">{ui === "ru" ? "Помогите улучшить маршрут" : "Help improve the route"}</div>
+      <p className="mb-4 text-sm leading-relaxed text-neutral-300">
+        {ui === "ru"
+          ? "Вы уже прошли несколько тренировок. Напишите, что было полезно, где возникло непонимание и готовы ли вы платить за такой формат."
+          : "You have completed several practices. Write what was useful, what was unclear, and whether you would pay for this format."}
+      </p>
+      <Textarea value={value} onChange={(e) => onChange(e.target.value)} className="mb-3 min-h-28 border-neutral-700 bg-neutral-950 text-neutral-50 placeholder:text-neutral-600" placeholder={ui === "ru" ? "Что было полезно? Что мешало? Какая цена кажется нормальной?" : "What was useful? What blocked you? What price feels fair?"} />
+      <Button onClick={onSend} className="bg-orange-500 text-white hover:bg-orange-600">{ui === "ru" ? "Сохранить feedback" : "Save feedback"}</Button>
     </div>
   );
 }
