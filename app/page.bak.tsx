@@ -336,113 +336,6 @@ const goals: { id: GoalId; ru: string; en: string; descRu: string; descEn: strin
   },
 ];
 
-
-type RouteTheme = {
-  nameRu: string;
-  nameEn: string;
-  badgeRu: string;
-  badgeEn: string;
-  gradient: string;
-  glow: string;
-  border: string;
-  softBg: string;
-  text: string;
-  button: string;
-  promiseRu: string;
-  promiseEn: string;
-};
-
-const routeThemes: Record<GoalId | "school", RouteTheme> = {
-  "new-country": {
-    nameRu: "Новая страна",
-    nameEn: "New country",
-    badgeRu: "Survival route",
-    badgeEn: "Survival route",
-    gradient: "from-orange-500 to-amber-300",
-    glow: "bg-orange-500/20",
-    border: "border-orange-400/40",
-    softBg: "bg-orange-500/10",
-    text: "text-orange-300",
-    button: "bg-orange-500 hover:bg-orange-600",
-    promiseRu: "После оплаты открывается отдельная страница маршрута: врач, банк, аренда, документы, школа и первые разговоры.",
-    promiseEn: "After payment, the user enters a dedicated route page: doctor, bank, rent, documents, school, and first conversations.",
-  },
-  job: {
-    nameRu: "Работа и интервью",
-    nameEn: "Work and interview",
-    badgeRu: "Career route",
-    badgeEn: "Career route",
-    gradient: "from-sky-500 to-cyan-300",
-    glow: "bg-sky-500/20",
-    border: "border-sky-400/40",
-    softBg: "bg-sky-500/10",
-    text: "text-sky-300",
-    button: "bg-sky-500 hover:bg-sky-600",
-    promiseRu: "После оплаты открывается рабочий маршрут: интервью, созвоны, письма, клиенты и самопрезентация.",
-    promiseEn: "After payment, the user enters a work route: interviews, calls, emails, clients, and self-introduction.",
-  },
-  "parent-child": {
-    nameRu: "Родитель и ребёнок",
-    nameEn: "Parent and child",
-    badgeRu: "Parent route",
-    badgeEn: "Parent route",
-    gradient: "from-emerald-500 to-lime-300",
-    glow: "bg-emerald-500/20",
-    border: "border-emerald-400/40",
-    softBg: "bg-emerald-500/10",
-    text: "text-emerald-300",
-    button: "bg-emerald-500 hover:bg-emerald-600",
-    promiseRu: "После оплаты родитель получает кабинет динамики, а ребёнок — отдельный лёгкий интерфейс без перегруза.",
-    promiseEn: "After payment, the parent gets a progress dashboard, while the child gets a simple focused interface.",
-  },
-  conversation: {
-    nameRu: "Живой разговор",
-    nameEn: "Real conversation",
-    badgeRu: "Speaking route",
-    badgeEn: "Speaking route",
-    gradient: "from-violet-500 to-fuchsia-300",
-    glow: "bg-violet-500/20",
-    border: "border-violet-400/40",
-    softBg: "bg-violet-500/10",
-    text: "text-violet-300",
-    button: "bg-violet-500 hover:bg-violet-600",
-    promiseRu: "После оплаты открывается маршрут живого диалога: быстрые реакции, переспросы и снятие страха ошибки.",
-    promiseEn: "After payment, the user enters a live conversation route: quick reactions, clarification, and fear reduction.",
-  },
-  authority: {
-    nameRu: "Профессиональная позиция",
-    nameEn: "Professional authority",
-    badgeRu: "Authority route",
-    badgeEn: "Authority route",
-    gradient: "from-amber-400 to-orange-500",
-    glow: "bg-amber-500/20",
-    border: "border-amber-400/40",
-    softBg: "bg-amber-500/10",
-    text: "text-amber-300",
-    button: "bg-amber-500 hover:bg-amber-600",
-    promiseRu: "После оплаты открывается premium-маршрут: переговоры, цена, границы, клиенты и выступления.",
-    promiseEn: "After payment, the user enters a premium route: negotiation, pricing, boundaries, clients, and speaking.",
-  },
-  school: {
-    nameRu: "Школьный английский",
-    nameEn: "School English",
-    badgeRu: "School beta route",
-    badgeEn: "School beta route",
-    gradient: "from-emerald-500 to-lime-300",
-    glow: "bg-emerald-500/20",
-    border: "border-emerald-400/40",
-    softBg: "bg-emerald-500/10",
-    text: "text-emerald-300",
-    button: "bg-emerald-500 hover:bg-emerald-600",
-    promiseRu: "После оплаты родитель регистрирует ребёнка, видит динамику, темы, ошибки и рекомендации. Ребёнок занимается в отдельном лёгком интерфейсе с Buddy.",
-    promiseEn: "After payment, the parent registers the child and sees progress, topics, mistakes, and recommendations. The child studies in a separate light interface with Buddy.",
-  },
-};
-
-function getRouteTheme(learnerType: LearnerType, goal: GoalId) {
-  return learnerType === "child" ? routeThemes.school : routeThemes[goal];
-}
-
 const levels: { id: LevelId; ru: string; en: string; descRu: string; descEn: string }[] = [
   { id: "zero", ru: "Уровень 0", en: "Zero", descRu: "Почти не говорю. Нужны короткие безопасные фразы.", descEn: "I almost do not speak. I need short safe phrases." },
   { id: "a1", ru: "A1", en: "A1", descRu: "Понимаю отдельные слова и могу сказать простые фразы.", descEn: "I understand some words and can say simple phrases." },
@@ -979,7 +872,6 @@ export default function LanguageGoalOS() {
 
   const t = uiText[ui];
   const selectedGoal = goals.find((g) => g.id === goal)!;
-  const routeTheme = getRouteTheme(learnerType, goal);
   const selectedLang = targetLanguages.find((l) => l.id === targetLang)!;
   const selectedSchoolGrade = schoolGrades.find((g) => g.id === schoolGrade)!;
   const selectedTextbook = textbookLines.find((book) => book.id === textbookLine)!;
@@ -1391,12 +1283,10 @@ export default function LanguageGoalOS() {
               </Badge>
             </div>
           </div>
-          <Card className={`relative overflow-hidden border-neutral-800 bg-neutral-900 text-neutral-50 ${routeTheme.border}`}>
-            <div className={`absolute -right-16 -top-16 h-48 w-48 rounded-full ${routeTheme.glow} blur-3xl`} />
-            <CardContent className="relative z-10 p-6">
-              <div className="mb-3 flex items-center gap-3"><Target className={`h-5 w-5 ${routeTheme.text}`} /><h2 className="text-2xl font-semibold">{t.targetTitle}</h2></div>
-              <p className="mb-4 text-neutral-300">{t.targetSubtitle}</p>
-              <Badge variant="outline" className={`${routeTheme.border} ${routeTheme.text} mb-4`}>{ui === "ru" ? routeTheme.badgeRu : routeTheme.badgeEn}</Badge>
+          <Card className="border-neutral-800 bg-neutral-900 text-neutral-50">
+            <CardContent className="p-6">
+              <div className="mb-3 flex items-center gap-3"><Target className="h-5 w-5 text-orange-400" /><h2 className="text-2xl font-semibold">{t.targetTitle}</h2></div>
+              <p className="mb-5 text-neutral-300">{t.targetSubtitle}</p>
               <Metric label={ui === "ru" ? "Маршрут выбран" : "Route selected"} value={goal ? 100 : 0} />
               <Metric label={ui === "ru" ? "Уровень задан" : "Level set"} value={level ? 100 : 0} />
               <Metric label={ui === "ru" ? "Сценарии доступны" : "Scenarios ready"} value={routeScenarios.length ? 100 : 0} />
@@ -1405,23 +1295,14 @@ export default function LanguageGoalOS() {
         </header>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          {learnerType === "child" ? (
-            <TabsList className="grid w-full grid-cols-2 bg-neutral-900 md:grid-cols-4">
-              <TabsTrigger value="start">{ui === "ru" ? "Настройка" : "Setup"}</TabsTrigger>
-              <TabsTrigger value="training">{ui === "ru" ? "Миссия" : "Mission"}</TabsTrigger>
-              <TabsTrigger value="phrases">{ui === "ru" ? "Фразы" : "Phrases"}</TabsTrigger>
-              <TabsTrigger value="progress">{ui === "ru" ? "Для родителя" : "For parent"}</TabsTrigger>
-            </TabsList>
-          ) : (
-            <TabsList className="grid w-full grid-cols-2 bg-neutral-900 md:grid-cols-6">
-              <TabsTrigger value="start">{t.start}</TabsTrigger>
-              <TabsTrigger value="training">{t.training}</TabsTrigger>
-              <TabsTrigger value="scenarios">{t.scenarios}</TabsTrigger>
-              <TabsTrigger value="phrases">{t.phrases}</TabsTrigger>
-              <TabsTrigger value="path">{t.path}</TabsTrigger>
-              <TabsTrigger value="progress">{t.progress}</TabsTrigger>
-            </TabsList>
-          )}
+          <TabsList className="grid w-full grid-cols-2 bg-neutral-900 md:grid-cols-6">
+            <TabsTrigger value="start">{t.start}</TabsTrigger>
+            <TabsTrigger value="training">{t.training}</TabsTrigger>
+            <TabsTrigger value="scenarios">{t.scenarios}</TabsTrigger>
+            <TabsTrigger value="phrases">{t.phrases}</TabsTrigger>
+            <TabsTrigger value="path">{t.path}</TabsTrigger>
+            <TabsTrigger value="progress">{t.progress}</TabsTrigger>
+          </TabsList>
 
           <TabsContent value="start">
             <div className="grid gap-6 lg:grid-cols-[1fr_0.8fr]">
@@ -1591,8 +1472,6 @@ export default function LanguageGoalOS() {
                 </CardContent>
               </Card>
 
-              <RouteWorkspaceCard ui={ui} theme={routeTheme} learnerType={learnerType} selectedGoal={selectedGoal} selectedLang={selectedLang} schoolGrade={selectedSchoolGrade.label} textbook={ui === "ru" ? selectedTextbook.ru : selectedTextbook.en} />
-              {learnerType === "child" && <ParentDashboardPreview ui={ui} theme={routeTheme} />}
               <DailyPlanCard ui={ui} goal={displayGoal} t={t} scenario={activeScenario} />
             </div>
           </TabsContent>
@@ -1863,9 +1742,6 @@ export default function LanguageGoalOS() {
             <Card className="border-neutral-800 bg-neutral-900 text-neutral-50"><CardContent className="p-6">
               <div className="mb-5 flex items-center justify-between gap-3"><div className="flex items-center gap-3"><BarChart3 className="h-5 w-5 text-orange-400" /><h2 className="text-2xl font-semibold">{t.progress}</h2></div>{attempts.length > 0 && <Button variant="outline" className="border-neutral-700 bg-transparent text-neutral-100 hover:bg-neutral-800" onClick={clearAllProgress}>{t.clearProgress}</Button>}</div>
               <div className="mb-6 grid gap-3 md:grid-cols-4"><Score label={completionLabel} value={completedSituations.length} /><Score label={t.attempts} value={attempts.length} /><Score label={t.avg} value={avg} /><Score label={t.best} value={best} /></div>
-              {learnerType === "child" && (
-                <ParentProgressDashboard ui={ui} theme={routeTheme} attempts={attempts} activeScenario={activeScenario} childResultLabel={childResultLabel} />
-              )}
               {completedSituations.length > 0 && (
                 <div className="mb-6 rounded-2xl border border-orange-500/30 bg-orange-500/10 p-5">
                   <div className="mb-3 text-sm font-medium text-orange-300">{completionLabel}</div>
@@ -1989,103 +1865,6 @@ function makeEnFeedback(score: any, level: LevelId) {
   if (score.clarityScore < 50) return "Make the answer clearer: who, what you need, and the next step. Keep it simple.";
   return level === "zero" ? "Good start. Now try to say the same idea without help." : "Good answer. Next step: make it more natural and faster in a live dialogue.";
 }
-
-function RouteWorkspaceCard({ ui, theme, learnerType, selectedGoal, selectedLang, schoolGrade, textbook }: { ui: UI; theme: RouteTheme; learnerType: LearnerType; selectedGoal: any; selectedLang: any; schoolGrade: string; textbook: string }) {
-  const isChild = learnerType === "child";
-  return (
-    <Card className={`relative overflow-hidden border ${theme.border} bg-neutral-900 text-neutral-50`}>
-      <div className={`absolute -right-20 -top-20 h-56 w-56 rounded-full ${theme.glow} blur-3xl`} />
-      <CardContent className="relative z-10 p-6">
-        <Badge className={`mb-4 bg-gradient-to-r ${theme.gradient} text-black hover:opacity-90`}>{ui === "ru" ? theme.badgeRu : theme.badgeEn}</Badge>
-        <h2 className="mb-3 text-2xl font-semibold">{ui === "ru" ? theme.nameRu : theme.nameEn}</h2>
-        <p className="mb-5 leading-relaxed text-neutral-300">{ui === "ru" ? theme.promiseRu : theme.promiseEn}</p>
-        <div className="grid gap-3 md:grid-cols-2">
-          <div className="rounded-2xl border border-neutral-800 bg-black/25 p-4">
-            <div className="mb-1 text-xs uppercase tracking-widest text-neutral-500">{ui === "ru" ? "Страница после оплаты" : "After-payment workspace"}</div>
-            <div className="font-semibold text-neutral-100">{isChild ? (ui === "ru" ? "Кабинет родителя + детская миссия" : "Parent dashboard + child mission") : (ui === "ru" ? selectedGoal.ru : selectedGoal.en)}</div>
-          </div>
-          <div className="rounded-2xl border border-neutral-800 bg-black/25 p-4">
-            <div className="mb-1 text-xs uppercase tracking-widest text-neutral-500">{ui === "ru" ? "Настройка" : "Setup"}</div>
-            <div className="font-semibold text-neutral-100">{isChild ? `${schoolGrade} · ${textbook}` : `${selectedLang.flag} ${ui === "ru" ? selectedLang.ru : selectedLang.en}`}</div>
-          </div>
-        </div>
-        <div className={`mt-5 rounded-2xl border ${theme.border} ${theme.softBg} p-4`}>
-          <div className={`mb-2 text-sm font-medium ${theme.text}`}>{ui === "ru" ? "Архитектурное решение" : "Architecture decision"}</div>
-          <p className="text-sm leading-relaxed text-neutral-200">
-            {isChild
-              ? (ui === "ru" ? "У ребёнка не будет перегруженного интерфейса: только миссия, Buddy, фраза и мягкий результат. Подробная статистика остаётся у родителя." : "The child does not see a complex interface: only the mission, Buddy, phrase, and soft result. Detailed analytics stays with the parent.")
-              : (ui === "ru" ? "Каждый взрослый маршрут сохраняет свой визуальный тон, сценарии, критерии оценки и ежедневный план." : "Each adult route keeps its own visual tone, scenarios, scoring criteria, and daily plan.")}
-          </p>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function ParentDashboardPreview({ ui, theme }: { ui: UI; theme: RouteTheme }) {
-  return (
-    <Card className={`border ${theme.border} bg-neutral-900 text-neutral-50`}>
-      <CardContent className="p-6">
-        <div className="mb-4 flex items-center gap-3">
-          <Users className={`h-5 w-5 ${theme.text}`} />
-          <h2 className="text-2xl font-semibold">{ui === "ru" ? "Кабинет родителя" : "Parent dashboard"}</h2>
-        </div>
-        <p className="mb-5 text-neutral-300">
-          {ui === "ru" ? "Родитель видит динамику, темы, попытки, ошибки и рекомендацию на завтра. Ребёнок видит только лёгкую голосовую миссию." : "The parent sees dynamics, topics, attempts, mistakes, and tomorrow’s recommendation. The child sees only a simple voice mission."}
-        </p>
-        <div className="grid gap-3 md:grid-cols-2">
-          {[ui === "ru" ? "Темы повторены" : "Topics reviewed", ui === "ru" ? "Попытки ребёнка" : "Child attempts", ui === "ru" ? "Что повторить" : "What to repeat", ui === "ru" ? "Рекомендация" : "Recommendation"].map((item) => (
-            <div key={item} className="rounded-2xl border border-neutral-800 bg-black/25 p-4 text-neutral-200">{item}</div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function ParentProgressDashboard({ ui, theme, attempts, activeScenario, childResultLabel }: { ui: UI; theme: RouteTheme; attempts: any[]; activeScenario: Scenario; childResultLabel: string }) {
-  const childAttempts = attempts.filter((item) => item.learnerType === "child" || item.goal === "parent-child");
-  const average = childAttempts.length ? Math.round(childAttempts.reduce((sum, item) => sum + (Number(item.total) || 0), 0) / childAttempts.length) : 0;
-  const strongAttempts = childAttempts.filter((item) => (Number(item.total) || 0) >= 70).length;
-  const lastTopic = childAttempts[0]?.scenarioTitle || (ui === "ru" ? activeScenario.titleRu : activeScenario.titleEn);
-
-  return (
-    <div className={`mb-6 rounded-2xl border ${theme.border} ${theme.softBg} p-5`}>
-      <div className="mb-4 flex items-center gap-3">
-        <BarChart3 className={`h-5 w-5 ${theme.text}`} />
-        <div>
-          <h3 className="text-xl font-semibold text-neutral-100">{ui === "ru" ? "Динамика ребёнка" : "Child dynamics"}</h3>
-          <p className="text-sm text-neutral-400">{ui === "ru" ? "Этот блок видит родитель, не ребёнок." : "This block is for the parent, not for the child."}</p>
-        </div>
-      </div>
-      <div className="grid gap-3 md:grid-cols-4">
-        <Score label={ui === "ru" ? "Занятий" : "Sessions"} value={childAttempts.length} />
-        <Score label={ui === "ru" ? "Средний результат" : "Average"} value={average} />
-        <Score label={ui === "ru" ? "Уверенных попыток" : "Confident attempts"} value={strongAttempts} />
-        <Score label={ui === "ru" ? "Сегодня" : "Today"} value={Math.round(Number(childAttempts[0]?.total) || 0)} />
-      </div>
-      <div className="mt-4 grid gap-3 md:grid-cols-2">
-        <div className="rounded-2xl border border-neutral-800 bg-black/25 p-4">
-          <div className={`mb-2 text-sm font-medium ${theme.text}`}>{ui === "ru" ? "Последняя тема" : "Latest topic"}</div>
-          <p className="text-neutral-100">{lastTopic}</p>
-        </div>
-        <div className="rounded-2xl border border-neutral-800 bg-black/25 p-4">
-          <div className={`mb-2 text-sm font-medium ${theme.text}`}>{ui === "ru" ? "Что повторить завтра" : "Repeat tomorrow"}</div>
-          <p className="text-neutral-100">{activeScenario.beginner}</p>
-        </div>
-      </div>
-      <div className="mt-4 rounded-2xl border border-neutral-800 bg-black/25 p-4">
-        <div className={`mb-2 text-sm font-medium ${theme.text}`}>{ui === "ru" ? "Вывод для родителя" : "Parent insight"}</div>
-        <p className="text-neutral-200">
-          {ui === "ru"
-            ? `Сейчас результат ребёнка: ${childResultLabel}. Сохраняем мягкую подачу для ребёнка, а подробную динамику показываем взрослому.`
-            : `Current child result: ${childResultLabel}. The child keeps a soft experience, while detailed dynamics are shown to the adult.`}
-        </p>
-      </div>
-    </div>
-  );
-}
-
 function Metric({ label, value }: { label: string; value: number }) { return <div className="mb-3"><div className="mb-1 flex justify-between text-sm text-neutral-400"><span>{label}</span><span>{value}%</span></div><Progress value={value} /></div>; }
 type VoiceBotState = "ready" | "listening" | "success" | "almost" | "repeat";
 
