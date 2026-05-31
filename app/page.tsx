@@ -1865,7 +1865,7 @@ export default function LanguageGoalOS() {
                         </div>
                         <p className="text-xl leading-relaxed text-neutral-100">{aiFeedback?.strongerVersion || activeScenario.stronger}</p>
                         <p className="mt-3 text-neutral-400"><span className="text-orange-300">{t.translation}:</span> {activeScenario.strongerRu}</p>
-                        <PronunciationHelp ui={ui} text={activeScenario.strongerReadRu} onOpen={() => setHelpOpens((v) => v + 1)} />
+                        <PronunciationHelp ui={ui} text={getSafePronunciationRu(aiFeedback?.strongerVersion || activeScenario.stronger, activeScenario.strongerReadRu, activeScenario.stronger)} onOpen={() => setHelpOpens((v) => v + 1)} />
                       </div>
                       <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5">
                         <div className="mb-2 text-sm font-medium text-neutral-300">{isChildRoute ? (ui === "ru" ? "Подробно для родителя" : "Details for the parent") : t.aiFeedback}</div>
@@ -2133,6 +2133,218 @@ const pronunciationHintsRu: Record<string, string> = {
   "give me a moment please": "Гив ми э моумэнт, плиз.",
 };
 
+const englishPronunciationWordsRu: Record<string, string> = {
+  "i": "ай",
+  "im": "айм",
+  "am": "эм",
+  "a": "э",
+  "an": "эн",
+  "the": "зэ",
+  "this": "зис",
+  "that": "зэт",
+  "these": "зииз",
+  "those": "зоуз",
+  "and": "энд",
+  "or": "ор",
+  "but": "бат",
+  "not": "нот",
+  "dont": "доунт",
+  "do": "ду",
+  "does": "даз",
+  "can": "кэн",
+  "could": "куд",
+  "should": "шуд",
+  "would": "вуд",
+  "will": "вил",
+  "need": "ниид",
+  "needs": "ниидз",
+  "to": "ту",
+  "for": "фор",
+  "of": "ов",
+  "with": "уиз",
+  "without": "уизаут",
+  "in": "ин",
+  "on": "он",
+  "before": "бифор",
+  "after": "афтер",
+  "because": "бикоз",
+  "first": "фёрст",
+  "then": "зэн",
+  "now": "нау",
+  "later": "лэйтер",
+  "please": "плиз",
+  "sorry": "сори",
+  "repeat": "рипит",
+  "explain": "иксплэйн",
+  "understand": "андэрстэнд",
+  "clear": "клиэр",
+  "clearly": "клиэрли",
+  "better": "бэтэр",
+  "stronger": "стронгэр",
+  "help": "хэлп",
+  "helps": "хэлпс",
+  "helping": "хэлпинг",
+  "make": "мэйк",
+  "makes": "мэйкс",
+  "making": "мэйкинг",
+  "design": "дизайн",
+  "designs": "дизайнз",
+  "designing": "дизайнинг",
+  "build": "билд",
+  "building": "билдинг",
+  "create": "криэйт",
+  "creating": "криэйтинг",
+  "effective": "и-фэк-тив",
+  "efficient": "и-фи-шэнт",
+  "product": "пра-дакт",
+  "products": "пра-дактс",
+  "architecture": "ар-ки-тек-чэр",
+  "architectures": "ар-ки-тек-чэрз",
+  "architect": "ар-ки-тект",
+  "architects": "ар-ки-тектс",
+  "decision": "ди-сижн",
+  "decisions": "ди-сижнз",
+  "data": "дэйта",
+  "structure": "страк-чэр",
+  "structures": "страк-чэрз",
+  "logic": "лоджик",
+  "role": "роул",
+  "roles": "роулз",
+  "user": "юзер",
+  "users": "юзерз",
+  "risk": "риск",
+  "risks": "рискс",
+  "ai": "эй-ай",
+  "automation": "отэ-мэй-шн",
+  "automations": "отэ-мэй-шнз",
+  "integration": "интэ-грэй-шн",
+  "integrations": "интэ-грэй-шнз",
+  "scalability": "скэй-лэ-бил-эти",
+  "technical": "тэк-ни-кэл",
+  "debt": "дэт",
+  "client": "клайэнт",
+  "clients": "клайэнтс",
+  "founder": "фаундер",
+  "founders": "фаундерз",
+  "customer": "кастомер",
+  "customers": "кастомерз",
+  "advisor": "эдвайзер",
+  "strategic": "стрэ-ти-джик",
+  "strategy": "стрэ-ти-джи",
+  "developer": "ди-вэ-лопер",
+  "developers": "ди-вэ-лоперз",
+  "development": "ди-вэ-лоп-мэнт",
+  "screen": "скрин",
+  "screens": "скринз",
+  "feature": "фи-чэр",
+  "features": "фи-чэрз",
+  "requirement": "ри-квайр-мэнт",
+  "requirements": "ри-квайр-мэнтс",
+  "price": "прайс",
+  "pricing": "прайсинг",
+  "estimate": "эс-ти-мэйт",
+  "estimates": "эс-ти-мэйтс",
+  "budget": "баджет",
+  "project": "праджект",
+  "projects": "праджектс",
+  "meeting": "миитинг",
+  "meetings": "миитингз",
+  "call": "кол",
+  "calls": "колз",
+  "interview": "интэр-вью",
+  "interviews": "интэр-вьюз",
+  "discovery": "дис-ка-вэ-ри",
+  "session": "сэшн",
+  "sessions": "сэшнз",
+  "position": "пэ-зи-шн",
+  "professional": "профэшнл",
+  "confidence": "кон-фидэнс",
+  "confident": "кон-фидэнт",
+  "meet": "миит",
+  "their": "зэир",
+  "your": "ёр",
+  "my": "май",
+  "our": "ауэр",
+  "them": "зэм",
+  "they": "зэй",
+  "we": "уи",
+  "you": "ю",
+  "he": "хи",
+  "she": "ши",
+  "it": "ит",
+  "as": "эз",
+  "like": "лайк",
+  "from": "фром",
+  "into": "инту",
+  "move": "мув",
+  "spend": "спэнд",
+  "money": "мани",
+  "invest": "инвэст",
+  "investment": "инвэст-мэнт",
+  "reliable": "ри-лай-эбл",
+  "unreliable": "ан-ри-лай-эбл",
+  "precise": "при-сайс",
+  "quick": "куик",
+  "early": "ёрли",
+  "expensive": "икс-пэнсив",
+  "solution": "сэ-лу-шн",
+  "solutions": "сэ-лу-шнз",
+  "system": "сис-тэм",
+  "systems": "сис-тэмз",
+  "platform": "плэт-форм",
+  "platforms": "плэт-формз",
+  "workflow": "вёрк-флоу",
+  "workflows": "вёрк-флоуз",
+  "process": "про-сэс",
+  "processes": "про-сэс-из",
+};
+
+function buildApproxEnglishPronunciationRu(phrase: string) {
+  const cleaned = phrase
+    .toLowerCase()
+    .replace(/[’']/g, "")
+    .replace(/[^a-z0-9\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!cleaned || !/[a-z]/.test(cleaned)) return "";
+
+  const numberHints: Record<string, string> = {
+    "0": "зиро",
+    "1": "уан",
+    "2": "ту",
+    "3": "сри",
+    "4": "фор",
+    "5": "файв",
+    "6": "сикс",
+    "7": "сэвэн",
+    "8": "эйт",
+    "9": "найн",
+    "10": "тэн",
+    "30": "сёрти",
+    "3000": "сри таузэнд",
+  };
+
+  const words = cleaned.split(/\s+/).map((word) => {
+    if (englishPronunciationWordsRu[word]) return englishPronunciationWordsRu[word];
+    if (numberHints[word]) return numberHints[word];
+
+    if (word.endsWith("ing")) {
+      const stem = word.slice(0, -3);
+      if (englishPronunciationWordsRu[stem]) return `${englishPronunciationWordsRu[stem]}-инг`;
+    }
+
+    if (word.endsWith("s")) {
+      const stem = word.slice(0, -1);
+      if (englishPronunciationWordsRu[stem]) return `${englishPronunciationWordsRu[stem]}з`;
+    }
+
+    return word;
+  });
+
+  return `Примерно: ${words.join(" ")}.`;
+}
+
 function getSafePronunciationRu(phrase: string, fallbackPronunciation: string, fallbackPhrase?: string) {
   const key = normalizePhraseKey(phrase);
   const fallbackKey = fallbackPhrase ? normalizePhraseKey(fallbackPhrase) : "";
@@ -2141,9 +2353,12 @@ function getSafePronunciationRu(phrase: string, fallbackPronunciation: string, f
 
   // Use the supplied pronunciation only when it belongs to the same phrase.
   // This prevents wrong hints like “Can we adjust the price?” → “Уот из ёр баджет?”.
-  if (fallbackKey && key === fallbackKey) return fallbackPronunciation;
+  if (fallbackPronunciation?.trim() && fallbackKey && key === fallbackKey) return fallbackPronunciation;
 
-  return "Подсказка чтения для этой фразы пока не добавлена. Используйте кнопку Slow / Слушать и повторите фразу по аудио.";
+  const generatedHint = buildApproxEnglishPronunciationRu(phrase);
+  if (generatedHint) return generatedHint;
+
+  return "Подсказка чтения пока недоступна для этого языка. Используйте Slow / Слушать и повторите фразу по аудио.";
 }
 
 function routeToScenarios(route: GeneratedRoute | null, goal: GoalId, level: LevelId): Scenario[] {
@@ -2160,7 +2375,7 @@ function routeToScenarios(route: GeneratedRoute | null, goal: GoalId, level: Lev
     situationRu: day.situationRu,
     beginner: day.beginnerPhrase,
     beginnerRu: day.beginnerTranslationRu,
-    readRu: day.pronunciationRu,
+    readRu: getSafePronunciationRu(day.beginnerPhrase, day.pronunciationRu, day.beginnerPhrase),
     stronger: day.strongerPhrase,
     strongerRu: day.strongerTranslationRu,
     strongerReadRu: getSafePronunciationRu(day.strongerPhrase, day.pronunciationRu, day.beginnerPhrase),
