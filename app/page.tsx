@@ -12,6 +12,7 @@ import { createSupabaseBrowserClient, isSupabaseConfigured } from "@/lib/supabas
 import {
   BarChart3,
   BookOpen,
+  Bot,
   Brain,
   HelpCircle,
   Languages,
@@ -1233,9 +1234,35 @@ export default function LanguageGoalOS() {
   const childMissionPhrases = [activeScenario.beginner, activeScenario.stronger, "I can say it myself."]
     .filter((phrase, index, arr) => Boolean(phrase) && arr.indexOf(phrase) === index)
     .slice(0, 3);
-  const childResultLabel = (aiFeedback?.totalScore ?? score.total) >= 70
+  const childScore = aiFeedback?.totalScore ?? score.total;
+  const childResultLabel = childScore >= 80
     ? (ui === "ru" ? "Получилось" : "Done")
-    : (ui === "ru" ? "Почти получилось" : "Almost there");
+    : childScore >= 55
+      ? (ui === "ru" ? "Почти получилось" : "Almost there")
+      : (ui === "ru" ? "Давай повторим" : "Let’s repeat");
+  const childResultMessage = childScore >= 80
+    ? (ui === "ru" ? "Отлично: смысл понятен. Теперь повтори фразу ещё раз без подсказки." : "Great: the meaning is clear. Now repeat the phrase once more without looking.")
+    : childScore >= 55
+      ? (ui === "ru" ? "Почти получилось. Повтори медленнее и попробуй ещё раз." : "Almost there. Repeat more slowly and try again.")
+      : (ui === "ru" ? "Ничего страшного. Послушай фразу, скажи её вместе с помощником и запиши ещё раз." : "That is okay. Listen to the phrase, say it with the helper, and record again.");
+  const childBotState: VoiceBotState = isRecording
+    ? "listening"
+    : showFeedback && childScore >= 80
+      ? "success"
+      : showFeedback && childScore >= 55
+        ? "almost"
+        : showFeedback
+          ? "repeat"
+          : "ready";
+  const childBotMessage = childBotState === "listening"
+    ? (ui === "ru" ? "Я слушаю. Скажи фразу спокойно, можно медленно." : "I am listening. Say the phrase calmly, slowly is okay.")
+    : childBotState === "success"
+      ? (ui === "ru" ? "Получилось. Теперь попробуй сказать ещё раз без подсказки." : "Done. Now try to say it again without looking.")
+      : childBotState === "almost"
+        ? (ui === "ru" ? "Почти получилось. Давай повторим медленнее вместе." : "Almost there. Let’s repeat it more slowly together.")
+        : childBotState === "repeat"
+          ? (ui === "ru" ? "Ничего страшного. Послушай фразу и попробуй ещё раз." : "That is okay. Listen to the phrase and try again.")
+          : (ui === "ru" ? "Привет, я Lingua Buddy. Сначала послушай фразу, потом повтори голосом." : "Hi, I am Lingua Buddy. First listen to the phrase, then repeat it aloud.");
 
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-50">
@@ -1482,6 +1509,16 @@ export default function LanguageGoalOS() {
                           ? "Для ребёнка это не тест. Это короткая миссия: послушать, повторить, попробовать самому и получить мягкий фидбек."
                           : "For a child, this is not a test. It is a short mission: listen, repeat, try alone, and get soft feedback."}
                       </p>
+                      <div className="mb-4 rounded-2xl border border-amber-500/30 bg-neutral-950 p-4">
+                        <VoiceBot
+                          ui={ui}
+                          state="ready"
+                          compact
+                          message={ui === "ru" ? "Я помогу пройти миссию: сначала слушаем, потом повторяем, потом пробуем сами." : "I will help with the mission: first we listen, then repeat, then try alone."}
+                          phrase={activeScenario.beginner}
+                          onListen={() => speak(activeScenario.beginner, true)}
+                        />
+                      </div>
                       <div className="grid gap-3 md:grid-cols-3">
                         {childMissionPhrases.map((phrase, index) => (
                           <div key={phrase} className="rounded-2xl border border-neutral-800 bg-neutral-950 p-4">
@@ -1524,12 +1561,30 @@ export default function LanguageGoalOS() {
                       : t.typeManual}
                   </p>
                   {isChildRoute && (
+                    <VoiceBot
+                      ui={ui}
+                      state={childBotState}
+                      message={childBotMessage}
+                      phrase={activeScenario.beginner}
+                      onListen={() => speak(activeScenario.beginner, true)}
+                    />
+                  )}
+                  {isChildRoute && (
                     <div className="mb-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4">
-                      <div className="mb-2 text-sm font-medium text-emerald-300">{ui === "ru" ? "Мягкий детский фидбек" : "Soft child feedback"}</div>
+                      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                        <div className="text-sm font-medium text-emerald-300">{ui === "ru" ? "Мягкая проверка для ребёнка" : "Soft check for the child"}</div>
+                        <HelpButton
+                          ui={ui}
+                          title={ui === "ru" ? "Что увидит ребёнок?" : "What will the child see?"}
+                          body={ui === "ru"
+                            ? "После проверки ребёнок видит короткий результат без строгих оценок: получилось, почти получилось или давай повторим. Подробные баллы и выводы показываются ниже в блоке для родителя."
+                            : "After analysis, the child sees a short result without strict scores: done, almost there, or let’s repeat. Detailed scores and insights are shown below for the parent."}
+                        />
+                      </div>
                       <p className="text-sm leading-relaxed text-neutral-200">
                         {ui === "ru"
-                          ? "После проверки ребёнок увидит не строгую оценку, а понятный результат: получилось, почти получилось или давай повторим. Подробный вывод нужен родителю."
-                          : "After analysis, the child sees a soft result: done, almost there, or let’s repeat. Detailed insight is for the parent."}
+                          ? "Сначала важно, чтобы ребёнок смело сказал фразу голосом. Подробный разбор будет отдельно для взрослого."
+                          : "First, the child only needs to say the phrase aloud. Detailed analysis is separated for the adult."}
                       </p>
                     </div>
                   )}
@@ -1554,19 +1609,17 @@ export default function LanguageGoalOS() {
                         <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5">
                           <div className="mb-2 text-sm font-medium text-amber-300">{ui === "ru" ? "Результат для ребёнка" : "Result for the child"}</div>
                           <h3 className="text-3xl font-semibold text-neutral-100">{childResultLabel}</h3>
-                          <p className="mt-3 text-neutral-300">
-                            {ui === "ru"
-                              ? "Если смысл передан — это уже успех. Повтори фразу ещё раз медленно и попробуй сказать без подсказки."
-                              : "If the meaning is clear, it is already a win. Repeat the phrase slowly and try without looking."}
-                          </p>
+                          <p className="mt-3 text-neutral-300">{childResultMessage}</p>
                         </div>
                       )}
-                      <div className="grid gap-3 md:grid-cols-4">
-                        <Score label={t.total} value={aiFeedback?.totalScore ?? score.total} />
-                        <Score label={scoreLabels[0]} value={metricOneValue} />
-                        <Score label={scoreLabels[1]} value={metricTwoValue} />
-                        <Score label={scoreLabels[2]} value={metricThreeValue} />
-                      </div>
+                      {!isChildRoute && (
+                        <div className="grid gap-3 md:grid-cols-4">
+                          <Score label={t.total} value={aiFeedback?.totalScore ?? score.total} />
+                          <Score label={scoreLabels[0]} value={metricOneValue} />
+                          <Score label={scoreLabels[1]} value={metricTwoValue} />
+                          <Score label={scoreLabels[2]} value={metricThreeValue} />
+                        </div>
+                      )}
                       <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5">
                         <div className="mb-3 flex items-center justify-between gap-3">
                           <div className="text-sm font-medium text-orange-300">{t.stronger}</div>
@@ -1580,7 +1633,7 @@ export default function LanguageGoalOS() {
                         <PronunciationHelp ui={ui} text={activeScenario.strongerReadRu} onOpen={() => setHelpOpens((v) => v + 1)} />
                       </div>
                       <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5">
-                        <div className="mb-2 text-sm font-medium text-neutral-300">{t.aiFeedback}</div>
+                        <div className="mb-2 text-sm font-medium text-neutral-300">{isChildRoute ? (ui === "ru" ? "Подробно для родителя" : "Details for the parent") : t.aiFeedback}</div>
                         {aiFeedback?.source === "fallback" && <p className="mb-3 rounded-xl border border-orange-500/30 bg-orange-500/10 p-3 text-sm text-orange-100">{t.aiFallback}</p>}
                         <p className="text-neutral-300">{ui === "ru" ? (aiFeedback?.feedbackRu || makeRuFeedback(score, level)) : (aiFeedback?.feedbackEn || makeEnFeedback(score, level))}</p>
                         {aiFeedback?.correctedAnswer && (
@@ -1601,11 +1654,17 @@ export default function LanguageGoalOS() {
                         )}
                         {isChildRoute && (
                           <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
-                            <div className="mb-2 text-sm text-emerald-300">{ui === "ru" ? "Вывод для родителя" : "Parent summary"}</div>
+                            <div className="mb-3 text-sm text-emerald-300">{ui === "ru" ? "Вывод для родителя" : "Parent summary"}</div>
+                            <div className="mb-4 grid gap-3 md:grid-cols-4">
+                              <Score label={t.total} value={aiFeedback?.totalScore ?? score.total} />
+                              <Score label={scoreLabels[0]} value={metricOneValue} />
+                              <Score label={scoreLabels[1]} value={metricTwoValue} />
+                              <Score label={scoreLabels[2]} value={metricThreeValue} />
+                            </div>
                             <p className="text-neutral-100">
                               {ui === "ru"
-                                ? `Сегодня ребёнок потренировал тему: ${activeScenario.titleRu}. Попытка: ${childResultLabel}. Повторить завтра: ${activeScenario.beginner}.`
-                                : `Today the child practiced: ${activeScenario.titleEn}. Attempt: ${childResultLabel}. Repeat tomorrow: ${activeScenario.beginner}.`}
+                                ? `Сегодня ребёнок потренировал тему: ${activeScenario.titleRu}. Результат: ${childResultLabel}. Повторить завтра: ${activeScenario.beginner}.`
+                                : `Today the child practiced: ${activeScenario.titleEn}. Result: ${childResultLabel}. Repeat tomorrow: ${activeScenario.beginner}.`}
                             </p>
                           </div>
                         )}
@@ -1807,6 +1866,62 @@ function makeEnFeedback(score: any, level: LevelId) {
   return level === "zero" ? "Good start. Now try to say the same idea without help." : "Good answer. Next step: make it more natural and faster in a live dialogue.";
 }
 function Metric({ label, value }: { label: string; value: number }) { return <div className="mb-3"><div className="mb-1 flex justify-between text-sm text-neutral-400"><span>{label}</span><span>{value}%</span></div><Progress value={value} /></div>; }
+type VoiceBotState = "ready" | "listening" | "success" | "almost" | "repeat";
+
+function VoiceBot({ ui, state, message, phrase, onListen, compact = false }: { ui: UI; state: VoiceBotState; message: string; phrase?: string; onListen?: () => void; compact?: boolean }) {
+  const stateStyles: Record<VoiceBotState, { ring: string; glow: string; labelRu: string; labelEn: string; face: string }> = {
+    ready: { ring: "border-sky-400/40", glow: "bg-sky-400/20", labelRu: "Готов помочь", labelEn: "Ready to help", face: "•‿•" },
+    listening: { ring: "border-orange-400/60", glow: "bg-orange-400/25", labelRu: "Слушаю", labelEn: "Listening", face: "◕‿◕" },
+    success: { ring: "border-emerald-400/60", glow: "bg-emerald-400/25", labelRu: "Получилось", labelEn: "Done", face: "＾‿＾" },
+    almost: { ring: "border-amber-400/60", glow: "bg-amber-400/25", labelRu: "Почти", labelEn: "Almost", face: "•ᴗ•" },
+    repeat: { ring: "border-violet-400/60", glow: "bg-violet-400/25", labelRu: "Повторим", labelEn: "Repeat", face: "•_•" },
+  };
+  const style = stateStyles[state];
+  const isActive = state === "listening";
+
+  return (
+    <div className={`relative overflow-hidden rounded-2xl border ${style.ring} bg-neutral-950 ${compact ? "p-4" : "p-5"}`}>
+      <div className={`absolute -right-12 -top-12 h-36 w-36 rounded-full ${style.glow} blur-3xl`} />
+      <div className="relative z-10 flex items-start gap-4">
+        <motion.div
+          animate={isActive ? { scale: [1, 1.06, 1], rotate: [0, -2, 2, 0] } : state === "success" ? { y: [0, -4, 0] } : { scale: 1 }}
+          transition={{ duration: isActive ? 1.1 : 0.7, repeat: isActive ? Infinity : 0, ease: "easeInOut" }}
+          className={`relative flex ${compact ? "h-16 w-16" : "h-20 w-20"} shrink-0 items-center justify-center rounded-3xl border ${style.ring} bg-gradient-to-br from-neutral-800 to-neutral-950 shadow-2xl`}
+        >
+          {isActive && (
+            <motion.span
+              className="absolute inset-0 rounded-3xl border border-orange-400/40"
+              animate={{ scale: [1, 1.35], opacity: [0.65, 0] }}
+              transition={{ duration: 1.1, repeat: Infinity }}
+            />
+          )}
+          <Bot className={`${compact ? "h-7 w-7" : "h-9 w-9"} text-orange-300`} />
+          <div className="absolute -bottom-2 rounded-full border border-neutral-700 bg-neutral-900 px-2 py-0.5 text-[10px] font-semibold text-neutral-200">{style.face}</div>
+        </motion.div>
+
+        <div className="min-w-0 flex-1">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <Badge variant="outline" className="border-orange-500/40 text-orange-200">Lingua Buddy</Badge>
+            <span className="rounded-full bg-white/[0.05] px-3 py-1 text-xs text-neutral-400">{ui === "ru" ? style.labelRu : style.labelEn}</span>
+          </div>
+          <p className={`${compact ? "text-sm" : "text-base"} leading-relaxed text-neutral-200`}>{message}</p>
+          {phrase && (
+            <div className="mt-3 rounded-xl border border-neutral-800 bg-black/30 p-3">
+              <p className="text-xs uppercase tracking-widest text-neutral-500">{ui === "ru" ? "Фраза миссии" : "Mission phrase"}</p>
+              <p className="mt-1 font-medium text-neutral-100">{phrase}</p>
+            </div>
+          )}
+          {onListen && (
+            <Button size="sm" onClick={onListen} variant="outline" className="mt-3 border-neutral-700 bg-transparent text-neutral-100 hover:bg-neutral-800">
+              <Volume2 className="mr-2 h-4 w-4" />{ui === "ru" ? "Послушать с Buddy" : "Listen with Buddy"}
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Score({ label, value }: { label: string; value: number }) { const safeValue = Math.round(Number(value) || 0); return <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-4"><div className="text-sm text-neutral-500">{label}</div><div className="mt-1 text-3xl font-semibold text-neutral-100">{safeValue}</div><Progress value={Math.min(100, safeValue)} className="mt-3" /></div>; }
 function SectionTitle({ icon, title }: { icon: React.ReactNode; title: string }) { return <div className="mb-3 flex items-center gap-2 text-lg font-semibold text-neutral-100"> <span className="text-orange-400">{icon}</span>{title}</div>; }
 function InfoBlock({ label, text, orange = false }: { label: string; text: string; orange?: boolean }) { return <div className={`mt-5 rounded-2xl border p-5 ${orange ? "border-orange-500/30 bg-orange-500/10" : "border-neutral-800 bg-neutral-950"}`}><div className={`mb-2 text-sm font-medium ${orange ? "text-orange-300" : "text-neutral-400"}`}>{label}</div><p className="text-lg leading-relaxed text-neutral-100">{text}</p></div>; }
